@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Importar Dados</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" th:href="@{/css/estilo.css}">
+</head>
+<body>
+
+    <h1>Importar Planilha</h1>
+    
+    <div class="grupo-campos" style="max-width: 600px;">
+        <p>Selecione sua planilha (.xlsx) para iniciar a importação.</p>
+        
+        <form th:action="@{/importar/upload}" method="post" enctype="multipart/form-data">
+            
+            <label>Arquivo Excel:</label>
+            <input type="file" name="arquivoExcel" accept=".xlsx" required>
+            <br><br>
+            
+            <button type="submit" class="btn-salvar">Carregar Colunas >></button>
+        </form>
+    </div>
+    
+    <a href="/" class="btn-cancelar">Voltar</a>
+
+</body>
+</html>

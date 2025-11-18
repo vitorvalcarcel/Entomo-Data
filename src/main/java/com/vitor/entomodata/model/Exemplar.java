@@ -1,4 +1,4 @@
-package com.vitor.entomodata;
+package com.vitor.entomodata.model;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;

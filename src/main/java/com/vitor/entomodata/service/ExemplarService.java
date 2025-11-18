@@ -1,7 +1,10 @@
-package com.vitor.entomodata;
+package com.vitor.entomodata.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import com.vitor.entomodata.model.Exemplar;
+import com.vitor.entomodata.repository.ExemplarRepository;
 
 import java.util.List;
 
