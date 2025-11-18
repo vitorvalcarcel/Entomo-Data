@@ -3,31 +3,91 @@
 <head>
     <title>EntomoData</title>
     <meta charset="UTF-8">
+
+    <link rel="stylesheet" th:href="@{/css/estilo.css}">
 </head>
 <body>
 
     <h1>Minha Coleção Entomológica</h1>
 
-    <table border="1" style="width: 100%; text-align: left;">
-        <thead>
-            <tr>
-                <th>Código</th>
-                <th>Espécie</th>
-                <th>Localidade</th>
-                <th>Coletor</th>
-                <th>Data</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr th:each="abelha : ${listaDeAbelhas}">
-                <td th:text="${abelha.cod}"></td>
-                <td th:text="${abelha.especie}"></td>
-                <td th:text="${abelha.localidade}"></td>
-                <td th:text="${abelha.coletor}"></td>
-                <td th:text="${abelha.data}"></td>
-            </tr>
-        </tbody>
-    </table>
+    <a href="/cadastro">
+        <button>
+            + Novo Exemplar
+        </button>
+    </a>
+
+    <div class="tabela-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Cód</th>
+                    <th>Espécie</th>
+                    <th>Sexo</th>
+                    <th>Família</th>
+                    <th>Subfamília</th>
+                    <th>Tribo</th>
+                    <th>Subtribo</th>
+                    <th>Gênero</th>
+                    <th>Subgênero</th>
+                    <th>Subespécie</th>
+                    <th>Autor</th>
+                    <th>Determinador</th>
+                    <th>Planta Assoc.</th>
+                    
+                    <th>Gaveta</th>
+                    <th>Caixa</th>
+                    
+                    <th>País</th>
+                    <th>Estado</th>
+                    <th>Cidade</th>
+                    <th>Localidade</th>
+                    <th>Proprietário</th>
+                    <th>Bioma</th>
+                    <th>Lat</th>
+                    <th>Long</th>
+                    
+                    <th>Coletor</th>
+                    <th>Data</th>
+                    <th>Horário</th>
+                    <th>Método</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="abelha : ${listaDeAbelhas}">
+                    <td th:text="${abelha.cod}"></td>
+                    <td th:text="${abelha.especie}"></td>
+                    <td th:text="${abelha.sexo}"></td>
+                    <td th:text="${abelha.familia}"></td>
+                    <td th:text="${abelha.subfamilia}"></td>
+                    <td th:text="${abelha.tribo}"></td>
+                    <td th:text="${abelha.subtribo}"></td>
+                    <td th:text="${abelha.genero}"></td>
+                    <td th:text="${abelha.subgenero}"></td>
+                    <td th:text="${abelha.subespecie}"></td>
+                    <td th:text="${abelha.autor}"></td>
+                    <td th:text="${abelha.determinador}"></td>
+                    <td th:text="${abelha.especieVegetalAssociada}"></td>
+
+                    <td th:text="${abelha.gaveta}"></td>
+                    <td th:text="${abelha.caixa}"></td>
+
+                    <td th:text="${abelha.pais}"></td>
+                    <td th:text="${abelha.estado}"></td>
+                    <td th:text="${abelha.cidade}"></td>
+                    <td th:text="${abelha.localidade}"></td>
+                    <td th:text="${abelha.proprietarioDoLocalDeColeta}"></td>
+                    <td th:text="${abelha.bioma}"></td>
+                    <td th:text="${abelha.latitude}"></td>
+                    <td th:text="${abelha.longitude}"></td>
+
+                    <td th:text="${abelha.coletor}"></td>
+                    <td th:text="${abelha.data}"></td>
+                    <td th:text="${abelha.horarioColeta}"></td>
+                    <td th:text="${abelha.metodoDeAquisicao}"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 
 </body>
 </html>
