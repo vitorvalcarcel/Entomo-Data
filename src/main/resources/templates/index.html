@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>EntomoData</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+
+    <h1>Minha Coleção Entomológica</h1>
+
+    <table border="1" style="width: 100%; text-align: left;">
+        <thead>
+            <tr>
+                <th>Código</th>
+                <th>Espécie</th>
+                <th>Localidade</th>
+                <th>Coletor</th>
+                <th>Data</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="abelha : ${listaDeAbelhas}">
+                <td th:text="${abelha.cod}"></td>
+                <td th:text="${abelha.especie}"></td>
+                <td th:text="${abelha.localidade}"></td>
+                <td th:text="${abelha.coletor}"></td>
+                <td th:text="${abelha.data}"></td>
+            </tr>
+        </tbody>
+    </table>
+
+</body>
+</html>
