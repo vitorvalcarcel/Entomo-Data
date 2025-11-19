@@ -25,25 +25,20 @@ public class ImportacaoController {
     @Autowired
     private ImportacaoService service;
 
-    // Mostra a tela inicial de Upload
     @GetMapping("/importar")
     public String telaUpload() {
         return "importar-upload";
     }
 
-    // Recebe arquivo, SALVA temporariamente e manda para o mapa
     @PostMapping("/importar/upload")
     public String processarUpload(@RequestParam("arquivoExcel") MultipartFile arquivo, Model model) {
         try {
-            // Salvar o arquivo numa pasta temporária do sistema
             String nomeArquivo = arquivo.getOriginalFilename();
             Path caminhoTemporario = Paths.get(System.getProperty("java.io.tmpdir"), nomeArquivo);
             Files.copy(arquivo.getInputStream(), caminhoTemporario, StandardCopyOption.REPLACE_EXISTING);
 
-            // Ler os cabeçalhos do Excel
             List<String> colunasDoExcel = service.lerCabecalhos(arquivo);
             
-            // Definir quais campos do SISTEMA queremos preencher
             List<String> camposDoSistema = Arrays.asList(
                 "cod", 
                 "familia", "subfamilia", "tribo", "subtribo", 
@@ -67,23 +62,52 @@ public class ImportacaoController {
         }
     }
 
-    // Recebe o Mapa (De-Para) e finaliza a importação
     @PostMapping("/importar/finalizar")
     public String finalizarImportacao(@RequestParam Map<String, String> todosOsParametros, Model model) {
         String nomeArquivo = todosOsParametros.get("nomeArquivo");
-        
-        // Remove o nomeArquivo do mapa, deixando só os pares "campo -> coluna"
         todosOsParametros.remove("nomeArquivo");
         
         try {
-            service.processarImportacao(nomeArquivo, todosOsParametros);
+            // Tenta processar COM validação de duplicidade (true)
+            service.processarImportacao(nomeArquivo, todosOsParametros, true);
             return "redirect:/?sucesso=true";
             
         } catch (DuplicidadeException e) {
-            // SE ENCONTRAR DUPLICATAS: Mostra a tela de erro
+            // Se achou duplicatas, vai para a tela de decisão
             model.addAttribute("duplicatas", e.getDuplicatas());
-            return "importar-erro";
+            model.addAttribute("nomeArquivoSalvo", nomeArquivo);
+            model.addAttribute("mapaAnterior", todosOsParametros); // Passa o mapa para não perder
+            return "importar-conflito";
             
+        } catch (IOException e) {
+            return "redirect:/importar?erro=" + e.getMessage();
+        }
+    }
+
+    @PostMapping("/importar/resolver-conflito")
+    public String resolverConflito(
+            @RequestParam String acao,
+            @RequestParam Map<String, String> todosOsParametros,
+            Model model
+    ) {
+        String nomeArquivo = todosOsParametros.get("nomeArquivo");
+        todosOsParametros.remove("nomeArquivo");
+        todosOsParametros.remove("acao");
+
+        try {
+            if (acao.equals("sobrescrever")) {
+                service.processarImportacao(nomeArquivo, todosOsParametros, false);
+                return "redirect:/?sucesso=true";
+            
+            } else if (acao.equals("escolher-manual")) {
+                return "redirect:/importar?erro=Funcionalidade_Em_Construcao";
+            
+            } else if (acao.equals("smart-merge")) {
+                return "redirect:/importar?erro=Funcionalidade_Em_Construcao";
+            }
+            
+            return "redirect:/importar";
+
         } catch (IOException e) {
             return "redirect:/importar?erro=" + e.getMessage();
         }

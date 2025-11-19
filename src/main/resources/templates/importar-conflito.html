@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Conflito de Dados</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" th:href="@{/css/estilo.css}">
+    <style>
+        .card-opcao {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: #fff;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .card-opcao:hover {
+            border-color: #3498db;
+            background-color: #fbfdff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+        }
+        .card-opcao h3 { margin: 0 0 5px 0; font-size: 16px; color: #2c3e50; }
+        .card-opcao p { margin: 0; font-size: 13px; color: #7f8c8d; }
+        
+        /* Esconde o radio button padrão para usarmos o card como botão */
+        .opcao-radio { display: none; }
+        
+        .opcao-radio:checked + .card-opcao {
+            border-color: #3498db;
+            background-color: #e8f4fd;
+            border-width: 2px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-container" style="border-left: 5px solid #f39c12;">
+        <h1 style="color: #e67e22;">⚠️ Conflitos Encontrados</h1>
+        <span style="color: #d35400; font-weight: bold;">Códigos duplicados na planilha</span>
+    </div>
+    
+    <div class="grupo-campos">
+        <p style="margin-top: 0; color: #555;">
+            O sistema detectou que existem códigos repetidos dentro da planilha que você está enviando.
+        </p>
+        
+        <div style="max-height: 150px; overflow-y: auto; background: #fafafa; padding: 10px; border: 1px solid #eee; border-radius: 4px; margin-bottom: 20px;">
+            <div th:each="item : ${duplicatas}" style="margin-bottom: 5px; font-size: 13px;">
+                <strong th:text="${item.key}" style="color: #e74c3c;">A001</strong> aparece nas linhas: 
+                <span th:text="${item.value}">[2, 5]</span>
+            </div>
+        </div>
+
+        <h3 style="color: #2c3e50; border-bottom: 1px solid #eee; padding-bottom: 10px;">O que deseja fazer?</h3>
+
+        <form th:action="@{/importar/resolver-conflito}" method="post">
+            
+            <input type="hidden" name="nomeArquivo" th:value="${nomeArquivoSalvo}">
+            <th:block th:each="entry : ${mapaAnterior}">
+                <input type="hidden" th:name="${entry.key}" th:value="${entry.value}">
+            </th:block>
+
+            <label>
+                <input type="radio" name="acao" value="sobrescrever" class="opcao-radio" checked>
+                <div class="card-opcao">
+                    <h3>📥 Importar a Última Ocorrência (Sobreescrever)</h3>
+                    <p>O sistema vai importar todos. Se houver repetidos, o registro da linha mais baixa na planilha será o definitivo.</p>
+                </div>
+            </label>
+
+            <label>
+                <input type="radio" name="acao" value="escolher-manual" class="opcao-radio">
+                <div class="card-opcao">
+                    <h3>👆 Escolher Manualmente (Linha por Linha)</h3>
+                    <p>Você verá cada código duplicado e escolherá qual linha específica deve ser importada.</p>
+                </div>
+            </label>
+
+            <label>
+                <input type="radio" name="acao" value="smart-merge" class="opcao-radio">
+                <div class="card-opcao">
+                    <h3>🧠 Mesclagem Inteligente</h3>
+                    <p>O sistema tentará combinar os dados das linhas duplicadas. Se houver conflito (ex: datas diferentes), ele perguntará.</p>
+                </div>
+            </label>
+
+            <div style="margin-top: 20px; display: flex; justify-content: space-between;">
+                <a href="/importar" class="btn btn-paginacao" style="color: #e74c3c;">Cancelar Importação</a>
+                <button type="submit" class="btn btn-salvar">Confirmar Decisão >></button>
+            </div>
+        </form>
+    </div>
+
+</body>
+</html>

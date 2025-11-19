@@ -43,26 +43,24 @@ public class ImportacaoService {
         return cabecalhos;
     }
 
-    public void processarImportacao(String nomeArquivo, Map<String, String> mapaDeColunas) throws IOException {
+    public void processarImportacao(String nomeArquivo, Map<String, String> mapaDeColunas, boolean verificarDuplicidade) throws IOException {
         File arquivo = new File(System.getProperty("java.io.tmpdir"), nomeArquivo);
         
-        // 1. VALIDAÇÃO: Verifica se há códigos duplicados DENTRO da planilha antes de prosseguir
-        verificarDuplicatasAntesDeSalvar(arquivo, mapaDeColunas);
-
-        // 2. PROCESSAMENTO: Se passou da validação, abre o arquivo de novo para salvar
+        if (verificarDuplicidade) {
+            verificarDuplicatasAntesDeSalvar(arquivo, mapaDeColunas);
+        }
+        
         try (FileInputStream is = new FileInputStream(arquivo);
              Workbook workbook = new XSSFWorkbook(is)) {
 
             Sheet sheet = workbook.getSheetAt(0);
             
-            // Mapeia colunas
             Row linhaCabecalho = sheet.getRow(0);
             Map<String, Integer> indiceDasColunas = new HashMap<>();
             for (Cell cell : linhaCabecalho) {
                 indiceDasColunas.put(cell.getStringCellValue(), cell.getColumnIndex());
             }
 
-            // Salva os dados
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
                 if (row == null) continue;
@@ -88,12 +86,10 @@ public class ImportacaoService {
         }
     }
 
-    // --- NOVO MÉTODO DE VALIDAÇÃO ---
     private void verificarDuplicatasAntesDeSalvar(File arquivo, Map<String, String> mapaDeColunas) throws IOException {
-        // Descobre qual é o nome da coluna do Excel que corresponde ao "cod"
         String nomeColunaCodigo = mapaDeColunas.get("cod");
         if (nomeColunaCodigo == null || nomeColunaCodigo.isEmpty()) {
-            return; // Se o usuário não mapeou o código, não dá pra validar duplicidade
+            return;
         }
 
         Map<String, List<Integer>> mapaOcorrencias = new HashMap<>();
@@ -104,7 +100,6 @@ public class ImportacaoService {
             Sheet sheet = workbook.getSheetAt(0);
             Row linhaCabecalho = sheet.getRow(0);
             
-            // Acha o índice da coluna de código
             int indiceCodigo = -1;
             for (Cell cell : linhaCabecalho) {
                 if (cell.getStringCellValue().equals(nomeColunaCodigo)) {
@@ -113,9 +108,8 @@ public class ImportacaoService {
                 }
             }
 
-            if (indiceCodigo == -1) return; // Não achou a coluna
+            if (indiceCodigo == -1) return;
 
-            // Varre todas as linhas guardando onde cada código aparece
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
                 if (row == null) continue;
@@ -124,18 +118,15 @@ public class ImportacaoService {
                 String codigo = getValorCelula(cell).trim();
 
                 if (!codigo.isEmpty()) {
-                    // Se o código ainda não existe no mapa, cria a lista. Adiciona a linha atual (i + 1 para usuário ver começando do 1)
                     mapaOcorrencias.computeIfAbsent(codigo, k -> new ArrayList<>()).add(i + 1);
                 }
             }
         }
 
-        // Filtra apenas os que têm mais de 1 ocorrência
         Map<String, List<Integer>> apenasDuplicados = mapaOcorrencias.entrySet().stream()
                 .filter(entry -> entry.getValue().size() > 1)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        // Se houver duplicatas, PARE TUDO e lance o erro
         if (!apenasDuplicados.isEmpty()) {
             throw new DuplicidadeException(apenasDuplicados);
         }
