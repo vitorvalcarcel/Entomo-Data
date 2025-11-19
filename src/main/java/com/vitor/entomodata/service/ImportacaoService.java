@@ -159,6 +159,177 @@ public class ImportacaoService {
         }
     }
 
+    public Map<String, Map<String, Set<String>>> executarMesclagemInteligente(String nomeArquivo, Map<String, String> mapaDeColunas, Map<String, List<Integer>> duplicatas) throws IOException {
+        
+        Set<Integer> linhasParaIgnorar = new HashSet<>();
+        for (List<Integer> linhas : duplicatas.values()) {
+            linhasParaIgnorar.addAll(linhas);
+        }
+        salvarLinhasNaoDuplicadas(nomeArquivo, mapaDeColunas, linhasParaIgnorar);
+
+        Map<String, List<OpcaoConflito>> dadosBrutos = detalharConflitos(nomeArquivo, mapaDeColunas, duplicatas);
+        Map<String, Map<String, Set<String>>> conflitosReais = new HashMap<>();
+
+        for (Map.Entry<String, List<OpcaoConflito>> entry : dadosBrutos.entrySet()) {
+            String codigo = entry.getKey();
+            List<OpcaoConflito> linhas = entry.getValue();
+            
+            Exemplar exemplarFinal = new Exemplar();
+            exemplarFinal.setCod(codigo);
+            
+            Optional<Exemplar> existente = exemplarRepository.findById(codigo);
+            if(existente.isPresent()) {
+
+            }
+
+            Map<String, Set<String>> conflitosDesteCodigo = new HashMap<>();
+            boolean temConflitoGeral = false;
+
+            Set<String> todosCampos = new HashSet<>();
+            for(OpcaoConflito op : linhas) todosCampos.addAll(op.getDados().keySet());
+
+            for (String campo : todosCampos) {
+                Set<String> valoresDistintos = new HashSet<>();
+                
+                for (OpcaoConflito linha : linhas) {
+                    String val = linha.getDados().get(campo);
+                    if (val != null && !val.trim().isEmpty()) {
+                        valoresDistintos.add(val.trim());
+                    }
+                }
+
+                if (valoresDistintos.isEmpty()) {
+                    // Nada
+                } else if (valoresDistintos.size() == 1) {
+                    preencherCampo(exemplarFinal, campo, valoresDistintos.iterator().next());
+                } else {
+                    conflitosDesteCodigo.put(campo, valoresDistintos);
+                    temConflitoGeral = true;
+                }
+            }
+
+            if (!temConflitoGeral) {
+                exemplarService.salvar(exemplarFinal);
+            } else {
+                conflitosReais.put(codigo, conflitosDesteCodigo);
+            }
+        }
+        
+        return conflitosReais;
+    }
+
+    private void salvarLinhasNaoDuplicadas(String nomeArquivo, Map<String, String> mapaDeColunas, Set<Integer> linhasParaIgnorar) throws IOException {
+        File arquivo = new File(System.getProperty("java.io.tmpdir"), nomeArquivo);
+        
+        try (FileInputStream is = new FileInputStream(arquivo);
+             Workbook workbook = new XSSFWorkbook(is)) {
+
+            Sheet sheet = workbook.getSheetAt(0);
+            Row linhaCabecalho = sheet.getRow(0);
+            Map<String, Integer> indiceDasColunas = new HashMap<>();
+            for (Cell cell : linhaCabecalho) {
+                indiceDasColunas.put(cell.getStringCellValue(), cell.getColumnIndex());
+            }
+            
+            String nomeColunaCodigo = mapaDeColunas.get("cod");
+            Integer idxCodigo = indiceDasColunas.get(nomeColunaCodigo);
+
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                if (linhasParaIgnorar.contains(i + 1)) {
+                    continue;
+                }
+
+                Row row = sheet.getRow(i);
+                if (row == null) continue;
+
+                String codigoNoExcel = null;
+                if(idxCodigo != null) {
+                     codigoNoExcel = getValorCelula(row.getCell(idxCodigo)).trim();
+                }
+                
+                if (codigoNoExcel == null || codigoNoExcel.isEmpty()) continue;
+
+                Optional<Exemplar> existente = exemplarRepository.findById(codigoNoExcel);
+                Exemplar exemplar = existente.orElse(new Exemplar());
+                exemplar.setCod(codigoNoExcel);
+                
+                for (Map.Entry<String, String> entrada : mapaDeColunas.entrySet()) {
+                    String campoSistema = entrada.getKey();
+                    String colunaExcel = entrada.getValue();
+
+                    if (colunaExcel != null && !colunaExcel.isEmpty() && indiceDasColunas.containsKey(colunaExcel)) {
+                        int indice = indiceDasColunas.get(colunaExcel);
+                        Cell cell = row.getCell(indice);
+                        String valor = getValorCelula(cell);
+                        
+                        if (!valor.isEmpty()) {
+                            preencherCampo(exemplar, campoSistema, valor);
+                        }
+                    }
+                }
+                exemplarService.salvar(exemplar);
+            }
+        }
+    }
+
+    public void aplicarMesclagemFinal(String nomeArquivo, Map<String, String> mapaDeColunas, Map<String, Map<String, String>> decisoes) throws IOException {
+        Map<String, List<Integer>> duplicatas = getMapaOcorrencias(nomeArquivo, mapaDeColunas);
+        Map<String, List<OpcaoConflito>> dadosBrutos = detalharConflitos(nomeArquivo, mapaDeColunas, duplicatas);
+
+        for (Map.Entry<String, List<OpcaoConflito>> entry : dadosBrutos.entrySet()) {
+            String codigo = entry.getKey();
+            List<OpcaoConflito> linhas = entry.getValue();
+            
+            if (decisoes.containsKey(codigo)) {
+                Exemplar exemplarFinal = new Exemplar();
+                exemplarFinal.setCod(codigo);
+                
+                Map<String, String> decisoesDesteCodigo = decisoes.get(codigo);
+                Set<String> todosCampos = new HashSet<>();
+                for(OpcaoConflito op : linhas) todosCampos.addAll(op.getDados().keySet());
+
+                for (String campo : todosCampos) {
+                    if (decisoesDesteCodigo.containsKey(campo)) {
+                         preencherCampo(exemplarFinal, campo, decisoesDesteCodigo.get(campo));
+                    } else {
+                        for (OpcaoConflito linha : linhas) {
+                            String val = linha.getDados().get(campo);
+                            if (val != null && !val.trim().isEmpty()) {
+                                preencherCampo(exemplarFinal, campo, val);
+                                break; 
+                            }
+                        }
+                    }
+                }
+                exemplarService.salvar(exemplarFinal);
+            }
+        }
+    }
+
+    private Map<String, List<Integer>> getMapaOcorrencias(String nomeArquivo, Map<String, String> mapaDeColunas) throws IOException {
+        File arquivo = new File(System.getProperty("java.io.tmpdir"), nomeArquivo);
+        String nomeColunaCodigo = mapaDeColunas.get("cod");
+        Map<String, List<Integer>> mapa = new HashMap<>();
+        
+        try (FileInputStream is = new FileInputStream(arquivo); Workbook workbook = new XSSFWorkbook(is)) {
+            Sheet sheet = workbook.getSheetAt(0);
+            Row linhaCabecalho = sheet.getRow(0);
+            int idx = -1;
+            for (Cell cell : linhaCabecalho) {
+                if (cell.getStringCellValue().equals(nomeColunaCodigo)) { idx = cell.getColumnIndex(); break; }
+            }
+            if (idx == -1) return mapa;
+
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) continue;
+                String cod = getValorCelula(row.getCell(idx)).trim();
+                if (!cod.isEmpty()) mapa.computeIfAbsent(cod, k -> new ArrayList<>()).add(i + 1);
+            }
+        }
+        return mapa.entrySet().stream().filter(e -> e.getValue().size() > 1).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
     public Map<String, List<OpcaoConflito>> detalharConflitos(String nomeArquivo, Map<String, String> mapaDeColunas, Map<String, List<Integer>> duplicatas) throws IOException {
         File arquivo = new File(System.getProperty("java.io.tmpdir"), nomeArquivo);
         Map<String, List<OpcaoConflito>> detalhes = new LinkedHashMap<>();

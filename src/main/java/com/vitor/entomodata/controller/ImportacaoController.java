@@ -18,8 +18,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.List;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -31,7 +32,6 @@ public class ImportacaoController {
 
     private Map<String, String> getCamposAmigaveis() {
         Map<String, String> campos = new LinkedHashMap<>();
-        
         campos.put("cod", "Código (ID)");
         campos.put("especie", "Espécie");
         campos.put("familia", "Família");
@@ -59,7 +59,6 @@ public class ImportacaoController {
         campos.put("metodoDeAquisicao", "Método de Coleta");
         campos.put("gaveta", "Gaveta");
         campos.put("caixa", "Caixa");
-        
         return campos;
     }
 
@@ -98,7 +97,6 @@ public class ImportacaoController {
         for (Map.Entry<String, String> entry : paramsFormulario.entrySet()) {
             String nomeColunaExcel = entry.getKey();
             String codigoCampoSistema = entry.getValue();
-            
             if (codigoCampoSistema != null && !codigoCampoSistema.isEmpty()) {
                 mapaParaService.put(codigoCampoSistema, nomeColunaExcel);
             }
@@ -141,19 +139,31 @@ public class ImportacaoController {
                 } catch (DuplicidadeException e) {
                     Map<String, List<OpcaoConflito>> detalhes = service.detalharConflitos(nomeArquivo, todosOsParametros, e.getDuplicatas());
                     Map<String, Set<String>> divergencias = service.analisarDivergencias(detalhes);
-
                     model.addAttribute("conflitos", detalhes);
                     model.addAttribute("divergencias", divergencias);
                     model.addAttribute("nomeArquivoSalvo", nomeArquivo);
                     model.addAttribute("mapaAnterior", todosOsParametros);
-                    
                     return "importar-manual";
                 }
             
             } else if (acao.equals("smart-merge")) {
-                return "redirect:/importar?erro=Funcionalidade_Em_Construcao";
+                try {
+                    service.processarImportacao(nomeArquivo, todosOsParametros, true, null);
+                    return "redirect:/?sucesso=true";
+                } catch (DuplicidadeException e) {
+                    Map<String, Map<String, Set<String>>> conflitosReais = service.executarMesclagemInteligente(nomeArquivo, todosOsParametros, e.getDuplicatas());
+                    
+                    if (conflitosReais.isEmpty()) {
+                        return "redirect:/?sucesso=true";
+                    } else {
+                        model.addAttribute("conflitosReais", conflitosReais);
+                        model.addAttribute("nomeArquivoSalvo", nomeArquivo);
+                        model.addAttribute("mapaAnterior", todosOsParametros);
+                        model.addAttribute("nomesAmigaveis", getCamposAmigaveis());
+                        return "importar-smart";
+                    }
+                }
             }
-            
             return "redirect:/importar";
 
         } catch (IOException e) {
@@ -168,8 +178,8 @@ public class ImportacaoController {
         String nomeArquivo = todosOsParametros.get("nomeArquivo");
         todosOsParametros.remove("nomeArquivo");
         
-        Map<String, Integer> linhasParaManter = new java.util.HashMap<>();
-        Map<String, String> colunasLimpas = new java.util.HashMap<>();
+        Map<String, Integer> linhasParaManter = new HashMap<>();
+        Map<String, String> colunasLimpas = new HashMap<>();
         
         for (Map.Entry<String, String> entry : todosOsParametros.entrySet()) {
             if (entry.getKey().startsWith("escolha_")) {
@@ -184,7 +194,35 @@ public class ImportacaoController {
         try {
             service.processarImportacao(nomeArquivo, colunasLimpas, false, linhasParaManter);
             return "redirect:/?sucesso=true";
-            
+        } catch (IOException e) {
+            return "redirect:/importar?erro=" + e.getMessage();
+        }
+    }
+    
+    @PostMapping("/importar/processar-smart")
+    public String processarSmart(@RequestParam Map<String, String> todosOsParametros) {
+        String nomeArquivo = todosOsParametros.get("nomeArquivo");
+        todosOsParametros.remove("nomeArquivo");
+
+        Map<String, Map<String, String>> decisoes = new HashMap<>();
+        Map<String, String> colunasLimpas = new HashMap<>();
+
+        for (Map.Entry<String, String> entry : todosOsParametros.entrySet()) {
+            if (entry.getKey().startsWith("decisao_")) {
+                String raw = entry.getKey().replace("decisao_", "");
+                int lastUnderscore = raw.lastIndexOf("_");
+                String codigo = raw.substring(0, lastUnderscore);
+                String campo = raw.substring(lastUnderscore + 1);
+                
+                decisoes.computeIfAbsent(codigo, k -> new HashMap<>()).put(campo, entry.getValue());
+            } else {
+                colunasLimpas.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        try {
+            service.aplicarMesclagemFinal(nomeArquivo, colunasLimpas, decisoes);
+            return "redirect:/?sucesso=true";
         } catch (IOException e) {
             return "redirect:/importar?erro=" + e.getMessage();
         }
