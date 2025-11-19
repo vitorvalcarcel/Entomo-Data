@@ -17,24 +17,39 @@ public class ExemplarController {
     @Autowired
     private ExemplarService service;
 
-    // Tela Principal (Lista de Exemplares com Paginação)
     @GetMapping("/")
     public String listarExemplares(
             Model model,
-            @RequestParam(defaultValue = "0") int page,   // Padrão: página 0 (primeira)
-            @RequestParam(defaultValue = "100") int size  // Padrão: 100 itens
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            Exemplar filtro
     ) {
-        // Busca a página de dados
-        Page<Exemplar> paginaDeAbelhas = service.buscarTodosPaginado(page, size);
+        buscarDados(model, page, size, filtro);
         
-        // Envia os dados e informações de controle para o HTML
-        model.addAttribute("listaDeAbelhas", paginaDeAbelhas); // A página com os dados
-        model.addAttribute("currentPage", page);              // Página atual
-        model.addAttribute("pageSize", size);                 // Tamanho atual (para manter selecionado)
-        model.addAttribute("totalPages", paginaDeAbelhas.getTotalPages()); // Total de páginas
-        model.addAttribute("totalItems", paginaDeAbelhas.getTotalElements()); // Total de itens no banco
-
         return "index";
+    }
+
+    @GetMapping("/filtrar")
+    public String filtrarExemplares(
+            Model model,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "100") int size,
+            Exemplar filtro
+    ) {
+        buscarDados(model, page, size, filtro);
+        
+        return "index :: tabela-resultados";
+    }
+
+    private void buscarDados(Model model, int page, int size, Exemplar filtro) {
+        Page<Exemplar> paginaDeAbelhas = service.buscarTodosPaginado(page, size, filtro);
+        
+        model.addAttribute("listaDeAbelhas", paginaDeAbelhas);
+        model.addAttribute("currentPage", page);
+        model.addAttribute("pageSize", size);
+        model.addAttribute("totalPages", paginaDeAbelhas.getTotalPages());
+        model.addAttribute("totalItems", paginaDeAbelhas.getTotalElements());
+        model.addAttribute("filtro", filtro);
     }
 
     @GetMapping("/novo")

@@ -7,22 +7,32 @@
 </head>
 <body>
 
-    <h1>Importar Planilha</h1>
+    <div class="header-container">
+        <h1>📂 Importar Planilha <span style="font-weight: normal; font-size: 0.8em; color: #7f8c8d;">| Passo 1 de 2</span></h1>
+    </div>
     
-    <div class="grupo-campos" style="max-width: 600px;">
-        <p>Selecione sua planilha (.xlsx) para iniciar a importação.</p>
+    <div th:if="${erro}" style="background-color: #fce4e4; border: 1px solid #fcc2c3; padding: 15px; border-radius: 8px; margin-bottom: 20px; color: #cc0033;">
+        <strong>Erro:</strong> <span th:text="${erro}"></span>
+    </div>
+
+    <div class="grupo-campos" style="max-width: 600px; margin: 0 auto;">
+        <span class="titulo-grupo">Selecione o Arquivo</span>
+        <p style="color: #666; font-size: 14px; margin-bottom: 20px;">
+            Selecione sua planilha (.xlsx) para iniciar a importação. O sistema irá ler os cabeçalhos na próxima etapa.
+        </p>
         
         <form th:action="@{/importar/upload}" method="post" enctype="multipart/form-data">
             
-            <label>Arquivo Excel:</label>
-            <input type="file" name="arquivoExcel" accept=".xlsx" required>
+            <label style="display: block; margin-bottom: 10px;">Arquivo Excel:</label>
+            <input type="file" name="arquivoExcel" accept=".xlsx" required style="width: 100%;">
             <br><br>
             
-            <button type="submit" class="btn-salvar">Carregar Colunas >></button>
+            <div style="text-align: right;">
+                <a href="/" class="btn btn-paginacao" style="margin-right: 10px;">Cancelar</a>
+                <button type="submit" class="btn btn-salvar">Carregar Colunas &raquo;</button>
+            </div>
         </form>
     </div>
-    
-    <a href="/" class="btn-cancelar">Voltar</a>
 
 </body>
 </html>

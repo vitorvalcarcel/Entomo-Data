@@ -6,120 +6,373 @@
     <link rel="stylesheet" th:href="@{/css/estilo.css}">
     
     <script>
-        function mudarTamanhoPagina(select) {
-            window.location.href = "/?page=0&size=" + select.value;
+        let delayTimer;
+
+        // --- LÓGICA DE FILTRO AJAX ---
+        function filtrar(pagina) {
+            clearTimeout(delayTimer);
+            delayTimer = setTimeout(function() {
+                enviarRequisicao(pagina);
+            }, 300);
         }
+
+        function enviarRequisicao(pagina) {
+            let size = document.getElementById('sizeSelect').value;
+            
+            // Coleta apenas os inputs que estão VISÍVEIS ou têm VALOR
+            let inputs = document.querySelectorAll('#painelFiltros .filtro-input');
+            let params = new URLSearchParams();
+            params.append('page', pagina);
+            params.append('size', size);
+
+            for (let input of inputs) {
+                if (input.value) {
+                    params.append(input.name, input.value);
+                }
+            }
+
+            fetch('/filtrar?' + params.toString())
+                .then(response => response.text())
+                .then(html => {
+                    let areaTabela = document.getElementById('area-tabela');
+                    if (areaTabela) {
+                        areaTabela.outerHTML = html;
+                        sincronizarRolagem(); // Re-aplica a barra de rolagem
+                    }
+                });
+        }
+        
+        function mudarTamanho() {
+            filtrar(0);
+        }
+
+        // --- LÓGICA DE INTERFACE ---
+
+        // Mostra/Esconde o painel inteiro
+        function toggleFiltros() {
+            let painel = document.getElementById('painelFiltros');
+            let btn = document.getElementById('btnFiltros');
+            
+            if (painel.style.display === 'none' || painel.style.display === '') {
+                painel.style.display = 'block';
+                btn.classList.add('ativo');
+                btn.innerHTML = '<span>▼</span> Ocultar Filtros';
+            } else {
+                painel.style.display = 'none';
+                btn.classList.remove('ativo');
+                btn.innerHTML = '<span>🔍</span> Filtrar Dados';
+            }
+        }
+
+        // Ativa/Desativa um campo específico
+        function toggleInput(checkbox) {
+            // Acha o input de texto irmão deste label
+            let container = checkbox.closest('.item-filtro');
+            let input = container.querySelector('.filtro-input');
+            
+            if (checkbox.checked) {
+                input.style.display = 'block';
+                input.focus();
+            } else {
+                input.style.display = 'none';
+                input.value = ''; // Limpa o valor ao desmarcar
+                filtrar(0); // Refaz a busca sem esse filtro
+            }
+        }
+
+        // Sincronia da barra superior
+        function sincronizarRolagem() {
+            let topo = document.getElementById('scrollTopWrapper');
+            let conteudoTopo = document.getElementById('scrollTopContent');
+            let tabelaContainer = document.querySelector('.tabela-container');
+            let tabela = document.querySelector('table');
+
+            if (!topo || !tabelaContainer || !tabela) return;
+
+            conteudoTopo.style.width = tabela.offsetWidth + 'px';
+
+            topo.onscroll = function() { tabelaContainer.scrollLeft = topo.scrollLeft; };
+            tabelaContainer.onscroll = function() { topo.scrollLeft = tabelaContainer.scrollLeft; };
+        }
+
+        // Ao carregar: Verifica quais filtros têm valor e marca os checkboxes
+        window.onload = function() {
+            sincronizarRolagem();
+            
+            let inputs = document.querySelectorAll('.filtro-input');
+            inputs.forEach(input => {
+                if (input.value.trim() !== '') {
+                    input.style.display = 'block';
+                    // Acha o checkbox correspondente e marca
+                    let checkbox = input.parentElement.querySelector('input[type="checkbox"]');
+                    if(checkbox) checkbox.checked = true;
+                    
+                    // Abre o painel se tiver filtro ativo
+                    document.getElementById('painelFiltros').style.display = 'block';
+                    document.getElementById('btnFiltros').classList.add('ativo');
+                }
+            });
+        };
     </script>
 </head>
 <body>
 
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h1>Minha Coleção Entomológica</h1>
+    <div class="header-container">
+        <h1>🦗 EntomoData <span style="font-weight: normal; font-size: 0.8em; color: #7f8c8d;">| Gerenciamento de Coleção</span></h1>
         
         <div>
-            <label>Itens por página:</label>
-            <select onchange="mudarTamanhoPagina(this)" style="padding: 5px; border-radius: 4px;">
-                <option value="50" th:selected="${pageSize == 50}">50</option>
-                <option value="100" th:selected="${pageSize == 100}">100</option>
-                <option value="1000" th:selected="${pageSize == 1000}">1000</option>
-                <option value="10000" th:selected="${pageSize == 10000}">10000</option>
+            <span style="font-size: 14px; color: #666; margin-right: 10px;">Exibir:</span>
+            <select id="sizeSelect" onchange="mudarTamanho()" class="seletor-pagina">
+                <option value="50" th:selected="${pageSize == 50}">50 itens</option>
+                <option value="100" th:selected="${pageSize == 100}">100 itens</option>
+                <option value="1000" th:selected="${pageSize == 1000}">1000 itens</option>
+                <option value="10000" th:selected="${pageSize == 10000}">10000 itens</option>
             </select>
         </div>
     </div>
 
-    <div style="margin-bottom: 15px;">
-        <a href="/novo">
-            <button class="btn-novo">Novo Exemplar</button>
-        </a>
-        <a href="/importar" style="margin-left: 10px;">
-            <button class="btn-novo" style="background-color: #8e44ad;">📂 Importar Excel</button>
-        </a>
-        
-        <span style="float: right; margin-top: 10px; font-weight: bold; color: #555;">
-            Total de Registros: <span th:text="${totalItems}">0</span>
-        </span>
+    <div style="margin-bottom: 20px;">
+        <a href="/novo" style="text-decoration: none;"><button class="btn btn-novo" style="margin-right: 10px;">+ Novo Exemplar</button></a>
+        <a href="/importar" style="text-decoration: none;"><button class="btn btn-importar">📂 Importar Excel</button></a>
     </div>
 
-    <div class="tabela-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>Cód</th>
-                    <th>Espécie</th>
-                    <th>Sexo</th>
-                    <th>Família</th>
-                    <th>Subfamília</th>
-                    <th>Tribo</th>
-                    <th>Subtribo</th>
-                    <th>Gênero</th>
-                    <th>Subgênero</th>
-                    <th>Subespécie</th>
-                    <th>Autor</th>
-                    <th>Determinador</th>
-                    <th>Planta Assoc.</th>
-                    <th>Gaveta</th>
-                    <th>Caixa</th>
-                    <th>País</th>
-                    <th>Estado</th>
-                    <th>Cidade</th>
-                    <th>Localidade</th>
-                    <th>Proprietário</th>
-                    <th>Bioma</th>
-                    <th>Lat</th>
-                    <th>Long</th>
-                    <th>Coletor</th>
-                    <th>Data</th>
-                    <th>Horário</th>
-                    <th>Método</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr th:each="abelha : ${listaDeAbelhas.content}">
-                    <td th:text="${abelha.cod}"></td>
-                    <td th:text="${abelha.especie}"></td>
-                    <td th:text="${abelha.sexo}"></td>
-                    <td th:text="${abelha.familia}"></td>
-                    <td th:text="${abelha.subfamilia}"></td>
-                    <td th:text="${abelha.tribo}"></td>
-                    <td th:text="${abelha.subtribo}"></td>
-                    <td th:text="${abelha.genero}"></td>
-                    <td th:text="${abelha.subgenero}"></td>
-                    <td th:text="${abelha.subespecie}"></td>
-                    <td th:text="${abelha.autor}"></td>
-                    <td th:text="${abelha.determinador}"></td>
-                    <td th:text="${abelha.especieVegetalAssociada}"></td>
-                    <td th:text="${abelha.gaveta}"></td>
-                    <td th:text="${abelha.caixa}"></td>
-                    <td th:text="${abelha.pais}"></td>
-                    <td th:text="${abelha.estado}"></td>
-                    <td th:text="${abelha.cidade}"></td>
-                    <td th:text="${abelha.localidade}"></td>
-                    <td th:text="${abelha.proprietarioDoLocalDeColeta}"></td>
-                    <td th:text="${abelha.bioma}"></td>
-                    <td th:text="${abelha.latitude}"></td>
-                    <td th:text="${abelha.longitude}"></td>
-                    <td th:text="${abelha.coletor}"></td>
-                    <td th:text="${abelha.data}"></td>
-                    <td th:text="${abelha.horarioColeta}"></td>
-                    <td th:text="${abelha.metodoDeAquisicao}"></td>
-                </tr>
-            </tbody>
-        </table>
+    <button id="btnFiltros" onclick="toggleFiltros()" class="btn btn-filtro">
+        <span>🔍</span> Filtrar Dados
+    </button>
+
+    <div id="painelFiltros" class="painel-filtros">
+        <div class="grid-filtros">
+            
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Cód</label>
+                <input name="cod" th:value="${filtro.cod}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Espécie</label>
+                <input name="especie" th:value="${filtro.especie}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+            
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Sexo</label>
+                <input name="sexo" th:value="${filtro.sexo}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+            
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Família</label>
+                <input name="familia" th:value="${filtro.familia}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+            
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Subfamília</label>
+                <input name="subfamilia" th:value="${filtro.subfamilia}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Tribo</label>
+                <input name="tribo" th:value="${filtro.tribo}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Subtribo</label>
+                <input name="subtribo" th:value="${filtro.subtribo}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Gênero</label>
+                <input name="genero" th:value="${filtro.genero}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Subgênero</label>
+                <input name="subgenero" th:value="${filtro.subgenero}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Subespécie</label>
+                <input name="subespecie" th:value="${filtro.subespecie}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Autor</label>
+                <input name="autor" th:value="${filtro.autor}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Determinador</label>
+                <input name="determinador" th:value="${filtro.determinador}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Planta Assoc.</label>
+                <input name="especieVegetalAssociada" th:value="${filtro.especieVegetalAssociada}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Gaveta</label>
+                <input name="gaveta" th:value="${filtro.gaveta}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Caixa</label>
+                <input name="caixa" th:value="${filtro.caixa}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> País</label>
+                <input name="pais" th:value="${filtro.pais}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Estado</label>
+                <input name="estado" th:value="${filtro.estado}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Cidade</label>
+                <input name="cidade" th:value="${filtro.cidade}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Localidade</label>
+                <input name="localidade" th:value="${filtro.localidade}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Proprietário</label>
+                <input name="proprietarioDoLocalDeColeta" th:value="${filtro.proprietarioDoLocalDeColeta}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Bioma</label>
+                <input name="bioma" th:value="${filtro.bioma}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Latitude</label>
+                <input name="latitude" th:value="${filtro.latitude}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Longitude</label>
+                <input name="longitude" th:value="${filtro.longitude}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Coletor</label>
+                <input name="coletor" th:value="${filtro.coletor}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Data</label>
+                <input name="data" th:value="${filtro.data}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Horário</label>
+                <input name="horarioColeta" th:value="${filtro.horarioColeta}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+
+            <div class="item-filtro">
+                <label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Método</label>
+                <input name="metodoDeAquisicao" th:value="${filtro.metodoDeAquisicao}" class="filtro-input" onkeyup="filtrar(0)">
+            </div>
+
+        </div>
     </div>
 
-    <div style="margin-top: 20px; text-align: center;" th:if="${totalPages > 1}">
+    <div id="area-tabela" th:fragment="tabela-resultados" class="card-tabela">
         
-        <a th:if="${currentPage > 0}" 
-           th:href="@{/(page=${currentPage - 1}, size=${pageSize})}" 
-           class="btn" style="background-color: #ddd; padding: 8px 15px;">&laquo; Anterior</a>
-        
-        <span style="margin: 0 15px; font-weight: bold;">
-            Página <span th:text="${currentPage + 1}">1</span> de <span th:text="${totalPages}">10</span>
-        </span>
+        <div style="padding: 15px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: flex-end;">
+            <span class="total-badge">
+                Total: <span th:text="${totalItems}">0</span>
+            </span>
+        </div>
 
-        <a th:if="${currentPage < totalPages - 1}" 
-           th:href="@{/(page=${currentPage + 1}, size=${pageSize})}" 
-           class="btn" style="background-color: #ddd; padding: 8px 15px;">Próximo &raquo;</a>
+        <div id="scrollTopWrapper" class="scroll-topo-wrapper">
+            <div id="scrollTopContent" class="scroll-topo-content"></div>
+        </div>
+
+        <div class="tabela-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Cód</th>
+                        <th>Espécie</th>
+                        <th>Sexo</th>
+                        <th>Família</th>
+                        <th>Subfamília</th>
+                        <th>Tribo</th>
+                        <th>Subtribo</th>
+                        <th>Gênero</th>
+                        <th>Subgênero</th>
+                        <th>Subespécie</th>
+                        <th>Autor</th>
+                        <th>Determinador</th>
+                        <th>Planta Assoc.</th>
+                        <th>Gaveta</th>
+                        <th>Caixa</th>
+                        <th>País</th>
+                        <th>Estado</th>
+                        <th>Cidade</th>
+                        <th>Localidade</th>
+                        <th>Proprietário</th>
+                        <th>Bioma</th>
+                        <th>Lat</th>
+                        <th>Long</th>
+                        <th>Coletor</th>
+                        <th>Data</th>
+                        <th>Horário</th>
+                        <th>Método</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="abelha : ${listaDeAbelhas.content}">
+                        <td th:text="${abelha.cod}"></td>
+                        <td th:text="${abelha.especie}"></td>
+                        <td th:text="${abelha.sexo}"></td>
+                        <td th:text="${abelha.familia}"></td>
+                        <td th:text="${abelha.subfamilia}"></td>
+                        <td th:text="${abelha.tribo}"></td>
+                        <td th:text="${abelha.subtribo}"></td>
+                        <td th:text="${abelha.genero}"></td>
+                        <td th:text="${abelha.subgenero}"></td>
+                        <td th:text="${abelha.subespecie}"></td>
+                        <td th:text="${abelha.autor}"></td>
+                        <td th:text="${abelha.determinador}"></td>
+                        <td th:text="${abelha.especieVegetalAssociada}"></td>
+                        <td th:text="${abelha.gaveta}"></td>
+                        <td th:text="${abelha.caixa}"></td>
+                        <td th:text="${abelha.pais}"></td>
+                        <td th:text="${abelha.estado}"></td>
+                        <td th:text="${abelha.cidade}"></td>
+                        <td th:text="${abelha.localidade}"></td>
+                        <td th:text="${abelha.proprietarioDoLocalDeColeta}"></td>
+                        <td th:text="${abelha.bioma}"></td>
+                        <td th:text="${abelha.latitude}"></td>
+                        <td th:text="${abelha.longitude}"></td>
+                        <td th:text="${abelha.coletor}"></td>
+                        <td th:text="${abelha.data}"></td>
+                        <td th:text="${abelha.horarioColeta}"></td>
+                        <td th:text="${abelha.metodoDeAquisicao}"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div style="padding: 20px; text-align: center; background-color: #fcfcfc; border-top: 1px solid #f1f1f1;" th:if="${totalPages > 1}">
+            <button th:if="${currentPage > 0}" 
+               th:onclick="'filtrar(' + (${currentPage} - 1) + ')'"
+               class="btn btn-paginacao">&laquo; Anterior</button>
+            
+            <span style="margin: 0 15px; font-weight: 600; color: #555;">
+                Página <span th:text="${currentPage + 1}">1</span> de <span th:text="${totalPages}">10</span>
+            </span>
+
+            <button th:if="${currentPage < totalPages - 1}" 
+               th:onclick="'filtrar(' + (${currentPage} + 1) + ')'"
+               class="btn btn-paginacao">Próximo &raquo;</button>
+        </div>
     </div>
     <br><br>
 

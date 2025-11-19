@@ -1,6 +1,8 @@
 package com.vitor.entomodata.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Example;
+import org.springframework.data.domain.ExampleMatcher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -17,14 +19,19 @@ public class ExemplarService {
     @Autowired
     private ExemplarRepository repository;
 
-    // ALTERADO: Agora retorna uma Página (Page) e recebe parâmetros de paginação
-    public Page<Exemplar> buscarTodosPaginado(int numeroPagina, int tamanhoPagina) {
-        // Cria o objeto que diz ao banco: "Quero a página X com Y itens"
+    // Busca paginada com filtros dinâmicos
+    public Page<Exemplar> buscarTodosPaginado(int numeroPagina, int tamanhoPagina, Exemplar filtro) {
         Pageable paginacao = PageRequest.of(numeroPagina, tamanhoPagina);
-        return repository.findAll(paginacao);
+
+        ExampleMatcher matcher = ExampleMatcher.matching()
+                .withIgnoreCase()
+                .withStringMatcher(ExampleMatcher.StringMatcher.CONTAINING);
+
+        Example<Exemplar> example = Example.of(filtro, matcher);
+
+        return repository.findAll(example, paginacao);
     }
 
-    // Mantemos este método caso precise da lista completa em algum lugar (ex: exportar tudo)
     public List<Exemplar> buscarTodos() {
         return repository.findAll();
     }

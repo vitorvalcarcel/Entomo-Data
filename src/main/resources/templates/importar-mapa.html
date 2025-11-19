@@ -5,45 +5,59 @@
     <link rel="stylesheet" th:href="@{/css/estilo.css}">
 </head>
 <body>
-    <h1>Vincular Colunas</h1>
+
+    <div class="header-container">
+        <h1>🔗 Vincular Colunas <span style="font-weight: normal; font-size: 0.8em; color: #7f8c8d;">| Passo 2 de 2</span></h1>
+    </div>
     
-    <p>Arquivo: <strong th:text="${nomeArquivoSalvo}"></strong></p>
-    <p>Indique qual coluna do Excel corresponde a cada campo do sistema.</p>
+    <div class="grupo-campos" style="margin-bottom: 20px;">
+        <p style="margin: 0; color: #555;">
+            Arquivo carregado: <strong th:text="${nomeArquivoSalvo}" style="color: #2c3e50;"></strong>
+        </p>
+        <p style="margin: 5px 0 0 0; font-size: 14px; color: #7f8c8d;">
+            Indique qual coluna do seu Excel corresponde a cada campo do sistema abaixo.
+        </p>
+    </div>
 
     <form th:action="@{/importar/finalizar}" method="post">
         
         <input type="hidden" name="nomeArquivo" th:value="${nomeArquivoSalvo}">
 
-        <div class="grupo-campos">
-            <table style="width: 100%; min-width: auto;">
-                <thead>
-                    <tr>
-                        <th>Campo do Sistema</th>
-                        <th>Coluna do seu Excel</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr th:each="campo : ${camposSistema}">
-                        <td>
-                            <strong th:text="${campo}"></strong>
-                        </td>
-                        <td>
-                            <select th:name="${campo}" style="width: 100%; padding: 5px;">
-                                <option value="">-- Ignorar este campo --</option>
-                                
-                                <option th:each="coluna : ${colunasExcel}" 
-                                        th:value="${coluna}" 
-                                        th:text="${coluna}">
-                                </option>
-                            </select>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="card-tabela">
+            <div class="tabela-container">
+                <table style="min-width: 100%;"> <thead>
+                        <tr>
+                            <th style="width: 40%;">Campo do Sistema</th>
+                            <th style="width: 60%;">Coluna do seu Excel</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="campo : ${camposSistema}">
+                            <td>
+                                <strong th:text="${campo}" style="color: #2980b9;"></strong>
+                            </td>
+                            <td>
+                                <select th:name="${campo}" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+                                    <option value="">-- Ignorar este campo --</option>
+                                    
+                                    <option th:each="coluna : ${colunasExcel}" 
+                                            th:value="${coluna}" 
+                                            th:text="${coluna}">
+                                    </option>
+                                </select>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        <button type="submit" class="btn-salvar">Finalizar Importação</button>
-        <a href="/importar" class="btn-cancelar">Cancelar</a>
+        <div style="margin-top: 20px; text-align: right;">
+            <a href="/importar" class="btn btn-paginacao" style="margin-right: 10px;">Voltar</a>
+            <button type="submit" class="btn btn-salvar">Finalizar Importação ✅</button>
+        </div>
     </form>
+    
+    <br><br>
 </body>
 </html>

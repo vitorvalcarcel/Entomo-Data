@@ -1,88 +1,190 @@
 /* === GERAL === */
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    padding: 20px;
-    background-color: #fdfdfd;
+    font-family: 'Segoe UI', 'Roboto', Helvetica, Arial, sans-serif;
+    background-color: #f4f6f8;
     color: #333;
+    margin: 0;
+    padding: 30px;
+}
+
+/* === CABEÇALHO === */
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    background-color: #fff;
+    padding: 15px 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
 h1 {
     color: #2c3e50;
-    border-bottom: 2px solid #eee;
-    padding-bottom: 10px;
+    margin: 0;
+    font-size: 1.5rem;
 }
 
 /* === BOTÕES === */
 button, .btn {
     cursor: pointer;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     text-decoration: none;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    height: 40px;
 }
 
 .btn-novo {
-    padding: 10px 20px;
-    margin-bottom: 15px;
+    padding: 0 20px;
     background-color: #3498db;
     color: white;
-    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
 }
+.btn-novo:hover { background-color: #2980b9; transform: translateY(-1px); }
 
-.btn-novo:hover { background-color: #2980b9; }
+.btn-importar {
+    background-color: #8e44ad;
+    color: white;
+    padding: 0 20px;
+    box-shadow: 0 2px 4px rgba(142, 68, 173, 0.3);
+}
+.btn-importar:hover { background-color: #732d91; transform: translateY(-1px); }
 
 .btn-salvar {
-    padding: 10px 20px;
+    padding: 0 25px;
     background-color: #27ae60;
     color: white;
     font-size: 16px;
+    box-shadow: 0 2px 4px rgba(39, 174, 96, 0.3);
 }
-.btn-salvar:hover { background-color: #2ecc71; }
+.btn-salvar:hover { background-color: #2ecc71; transform: translateY(-1px); }
 
 .btn-cancelar {
     margin-left: 15px;
     color: #e74c3c;
     text-decoration: underline;
+    background: none;
 }
+.btn-cancelar:hover { color: #c0392b; }
 
-/* === TABELA (Index) === */
-.tabela-container {
-    width: 100%;
-    overflow-x: auto;
-    border: 1px solid #ccc;
-    box-shadow: 0 0 10px rgba(0,0,0,0.05);
-}
-
-table {
-    border-collapse: collapse;
-    width: 100%;
-    min-width: 2500px;
-    background-color: white;
-}
-
-th, td {
+.btn-paginacao {
+    background-color: #fff;
     border: 1px solid #ddd;
-    padding: 10px;
-    text-align: left;
-    font-size: 14px;
-}
-
-th {
-    background-color: #f2f2f2;
-    position: sticky;
-    top: 0;
-    font-weight: bold;
     color: #555;
+    padding: 0 16px;
+}
+.btn-paginacao:hover { background-color: #f8f9fa; border-color: #ccc; color: #333; }
+
+.btn-filtro {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    color: #555;
+    padding: 0 20px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.btn-filtro:hover { background-color: #f9f9f9; border-color: #bbb; }
+.btn-filtro.ativo { background-color: #e8f4fd; border-color: #3498db; color: #3498db; }
+
+/* === PAINEL DE FILTROS === */
+.painel-filtros {
+    background-color: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+    display: none;
 }
 
-tr:nth-child(even) { background-color: #f9f9f9; }
-tr:hover { background-color: #f1f1f1; }
+.grid-filtros {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+}
 
-/* === FORMULÁRIO (Cadastro) === */
+.item-filtro {
+    display: flex;
+    flex-direction: column;
+}
+
+.toggle-filtro {
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    cursor: pointer;
+    padding: 5px 0;
+    user-select: none;
+}
+.toggle-filtro input[type="checkbox"] { margin-right: 8px; width: 16px; height: 16px; cursor: pointer; }
+
+.filtro-input {
+    width: 100%;
+    padding: 6px 10px;
+    margin-top: 5px;
+    border: 1px solid #3498db;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #333;
+    background-color: #fbfdff;
+    box-sizing: border-box;
+    display: none;
+}
+.filtro-input:focus { outline: none; box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1); }
+
+/* === SCROLLBAR DUPLA === */
+.scroll-topo-wrapper { width: 100%; overflow-x: auto; overflow-y: hidden; border-top: 1px solid #eee; }
+.scroll-topo-content { height: 1px; }
+
+/* === TABELA === */
+.card-tabela {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    overflow: hidden;
+    padding-bottom: 10px;
+}
+.tabela-container { width: 100%; overflow-x: auto; }
+
+table { border-collapse: collapse; width: 100%; min-width: 3000px; }
+th {
+    background-color: #f8f9fa;
+    color: #555;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    padding: 12px 10px;
+    border-bottom: 2px solid #e9ecef;
+    border-right: 1px solid #f1f1f1;
+    text-align: left;
+}
+td {
+    padding: 12px 10px;
+    border-bottom: 1px solid #f1f1f1;
+    border-right: 1px solid #f8f9fa;
+    color: #333;
+    font-size: 14px;
+    white-space: nowrap;
+}
+tr:hover td { background-color: #f8fbfd; }
+
+/* === FORMULÁRIO DE CADASTRO (GRID) === */
 .grupo-campos {
     background-color: #fff;
     border: 1px solid #e0e0e0;
-    padding: 20px;
+    padding: 25px;
     margin-bottom: 20px;
     border-radius: 8px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.03);
@@ -91,29 +193,55 @@ tr:hover { background-color: #f1f1f1; }
 .titulo-grupo {
     font-weight: bold;
     color: #2980b9;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
     display: block;
     font-size: 1.1em;
     border-bottom: 1px solid #eee;
-    padding-bottom: 5px;
+    padding-bottom: 8px;
 }
 
-label {
-    display: inline-block;
-    width: 160px;
-    font-weight: 500;
-    color: #555;
+.grid-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
 }
 
-input {
-    padding: 8px;
-    width: 300px;
-    margin-bottom: 10px;
+.form-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-item label {
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #34495e;
+    font-size: 14px;
+}
+
+.form-item input, 
+.form-item select {
+    padding: 10px;
     border: 1px solid #ccc;
     border-radius: 4px;
+    font-size: 14px;
+    width: 100%; 
+    box-sizing: border-box;
 }
 
-input:focus {
+.form-item input:focus, 
+.form-item select:focus {
     border-color: #3498db;
     outline: none;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.seletor-pagina { padding: 8px; border: 1px solid #ddd; border-radius: 6px; background-color: #fff; }
+.total-badge { background-color: #eef2f7; color: #2c3e50; padding: 5px 10px; border-radius: 20px; font-size: 13px; font-weight: 600; border: 1px solid #dae1e7; }
+
+input[type="file"] {
+    padding: 10px;
+    width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #f9f9f9;
 }
