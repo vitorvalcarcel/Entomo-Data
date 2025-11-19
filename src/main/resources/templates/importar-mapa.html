@@ -3,70 +3,6 @@
 <head>
     <title>Mapear Colunas</title>
     <link rel="stylesheet" th:href="@{/css/estilo.css}">
-    <style>
-        .card-coluna {
-            background: #fff;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            padding: 15px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .info-coluna { flex: 1; }
-        .nome-coluna { font-weight: bold; color: #2c3e50; font-size: 15px; display: block; margin-bottom: 5px; }
-        .amostras-container { font-size: 12px; color: #7f8c8d; }
-        .amostra-dado {
-            background: #f4f6f8;
-            padding: 2px 6px;
-            border-radius: 3px;
-            margin-right: 5px;
-            border: 1px solid #eee;
-        }
-        .select-area { flex: 0 0 300px; margin-left: 20px; }
-        .aviso-mapeado { color: #27ae60; font-size: 12px; font-weight: bold; display: none; margin-top: 5px; }
-        
-        .card-coluna.mapeado { border-color: #27ae60; background-color: #f9fffb; }
-        .card-coluna.mapeado .aviso-mapeado { display: block; }
-    </style>
-    
-    <script>
-        function atualizarDisponibilidade(selectAlterado) {
-            let selects = document.querySelectorAll('.select-mapeamento');
-            let valoresEscolhidos = new Set();
-
-            selects.forEach(sel => {
-                if (sel.value !== "") {
-                    valoresEscolhidos.add(sel.value);
-                    sel.closest('.card-coluna').classList.add('mapeado');
-                } else {
-                    sel.closest('.card-coluna').classList.remove('mapeado');
-                }
-            });
-
-            selects.forEach(sel => {
-                let valorAtual = sel.value;
-                
-                for (let i = 0; i < sel.options.length; i++) {
-                    let option = sel.options[i];
-                    let valorOpcao = option.value;
-                    
-                    if (valorOpcao === "") continue;
-
-                    if (valoresEscolhidos.has(valorOpcao) && valorOpcao !== valorAtual) {
-                        option.style.display = 'none';
-                    } else {
-                        option.style.display = 'block';
-                    }
-                }
-            });
-        }
-
-        window.onload = function() {
-            atualizarDisponibilidade(null);
-        }
-    </script>
 </head>
 <body>
 
@@ -76,18 +12,18 @@
     
     <div class="grupo-campos" style="margin-bottom: 20px;">
         <p style="margin: 0; color: #555;">
-            O sistema encontrou as colunas abaixo no seu arquivo: <strong th:text="${nomeArquivoSalvo}"></strong>.
+            O sistema encontrou as colunas abaixo no seu arquivo: <strong th:text="${nomeArquivoSalvo}" style="color: #2c3e50;"></strong>.
         </p>
         <p style="margin: 5px 0 0 0; font-size: 14px; color: #7f8c8d;">
-            Para cada coluna do Excel (esquerda), selecione qual campo do sistema (direita) ela representa.
+            Clique no botão <strong>"Selecionar..."</strong> à direita para definir o que cada coluna representa.
         </p>
     </div>
 
-    <form th:action="@{/importar/finalizar}" method="post">
+    <form th:action="@{/importar/finalizar}" method="post" id="formMapeamento">
         
         <input type="hidden" name="nomeArquivo" th:value="${nomeArquivoSalvo}">
 
-        <div th:each="coluna : ${colunasExcel}" class="card-coluna">
+        <div th:each="coluna : ${colunasExcel}" class="card-coluna" th:id="'card-' + ${coluna.nome}">
             
             <div class="info-coluna">
                 <span class="nome-coluna">
@@ -95,25 +31,17 @@
                 </span>
                 
                 <div class="amostras-container">
-                    <span style="margin-right: 5px;">Amostra de dados:</span>
+                    <span style="margin-right: 5px; font-weight: 600;">Amostra de dados:</span>
                     <span th:each="amostra : ${coluna.amostras}" class="amostra-dado" th:text="${amostra}">Dado 1</span>
-                    <span th:if="${coluna.amostras.empty}" style="font-style: italic;">(Coluna vazia nas primeiras linhas)</span>
+                    <span th:if="${coluna.amostras.empty}" style="font-style: italic; color: #999;">(Sem dados nas primeiras linhas)</span>
                 </div>
             </div>
 
             <div class="select-area">
-                <select th:name="${coluna.nome}" class="select-mapeamento" onchange="atualizarDisponibilidade(this)" 
-                        style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #ccc;">
-                    
-                    <option value="">-- Ignorar esta coluna --</option>
-                    
-                    <option th:each="campo : ${camposSistema}" 
-                            th:value="${campo.key}" 
-                            th:text="${campo.value}">
-                        Nome Amigável
-                    </option>
-                </select>
-                <span class="aviso-mapeado">✔ Vinculado</span>
+                <input type="hidden" th:name="${coluna.nome}" class="input-valor-mapeado">
+                <button type="button" class="btn-selecionar" onclick="abrirModal(this)">
+                    Selecionar...
+                </button>
             </div>
 
         </div>
@@ -124,5 +52,143 @@
         </div>
     </form>
     
+    <div id="modalSelecao" class="modal-overlay" onclick="fecharModal(event)">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Selecione o campo correspondente</h3>
+                <button type="button" class="btn-fechar" onclick="fecharModal(null)">×</button>
+            </div>
+            <div class="modal-body">
+                
+                <div class="grupo-selecao">
+                    <div class="titulo-grupo-modal">Identificação</div>
+                    <div class="grid-opcoes">
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('cod', 'Código (ID)')">Código (ID)</button>
+                        <button type="button" class="btn-opcao" style="color: #e74c3c; border-color: #fadbd8;" onclick="selecionarCampo('', 'Selecionar...')">⛔ Ignorar Coluna</button>
+                    </div>
+                </div>
+
+                <div class="grupo-selecao">
+                    <div class="titulo-grupo-modal">Taxonomia</div>
+                    <div class="grid-opcoes">
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('familia', 'Família')">Família</button>
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('subfamilia', 'Subfamília')">Subfamília</button>
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('tribo', 'Tribo')">Tribo</button>
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('subtribo', 'Subtribo')">Subtribo</button>
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('genero', 'Gênero')">Gênero</button>
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('subgenero', 'Subgênero')">Subgênero</button>
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('especie', 'Espécie')">Espécie</button>
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('subespecie', 'Subespécie')">Subespécie</button>
+                        
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('autor', 'Autor')">Autor</button>
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('determinador', 'Determinador')">Determinador</button>
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('sexo', 'Sexo')">Sexo</button>
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('especieVegetalAssociada', 'Espécie Vegetal Associada')">Espécie Vegetal Associada</button>
+                    </div>
+                </div>
+
+                <div class="grupo-selecao">
+                    <div class="titulo-grupo-modal">Localização</div>
+                    <div class="grid-opcoes">
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('pais', 'País da Coleta')">País da Coleta</button>
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('estado', 'Estado da Coleta')">Estado da Coleta</button>
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('cidade', 'Cidade/Município da Coleta')">Cidade/Município da Coleta</button>
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('localidade', 'Localidade Específica da Coleta')">Localidade Específica da Coleta</button>
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('proprietarioDoLocalDeColeta', 'Proprietário do Local da Coleta')">Proprietário do Local da Coleta</button>
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('bioma', 'Bioma')">Bioma</button>
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('latitude', 'Latitude')">Latitude</button>
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('longitude', 'Longitude')">Longitude</button>
+                    </div>
+                </div>
+
+                <div class="grupo-selecao">
+                    <div class="titulo-grupo-modal">Coleta e Armazenamento</div>
+                    <div class="grid-opcoes">
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('data', 'Data da Coleta')">Data da Coleta</button>
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('horarioColeta', 'Horário da Coleta')">Horário da Coleta</button>
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('coletor', 'Coletor')">Coletor</button>
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('metodoDeAquisicao', 'Método de Coleta')">Método de Coleta</button>
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('gaveta', 'Gaveta')">Gaveta</button>
+                        <button type="button" class="btn-opcao" onclick="selecionarCampo('caixa', 'Caixa')">Caixa</button>
+                    </div>
+                </div>
+            
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let botaoAtivo = null; 
+
+        function abrirModal(btn) {
+            botaoAtivo = btn;
+            let modal = document.getElementById('modalSelecao');
+            atualizarEstadoModal();
+            modal.classList.add('ativo');
+        }
+
+        function fecharModal(event) {
+            if (!event || event.target.classList.contains('modal-overlay') || event.target.classList.contains('btn-fechar')) {
+                document.getElementById('modalSelecao').classList.remove('ativo');
+            }
+        }
+
+        function selecionarCampo(valor, nomeAmigavel) {
+            if (!botaoAtivo) return;
+
+            let card = botaoAtivo.closest('.card-coluna');
+            let inputHidden = card.querySelector('.input-valor-mapeado');
+
+            inputHidden.value = valor;
+
+            if (valor === "") {
+                botaoAtivo.innerText = "Selecionar...";
+                botaoAtivo.classList.remove('preenchido');
+                card.classList.remove('mapeado');
+            } else {
+                botaoAtivo.innerText = nomeAmigavel;
+                botaoAtivo.classList.add('preenchido');
+                card.classList.add('mapeado');
+            }
+
+            document.getElementById('modalSelecao').classList.remove('ativo');
+        }
+
+        function atualizarEstadoModal() {
+            let inputs = document.querySelectorAll('.input-valor-mapeado');
+            let valoresUsados = new Set();
+            
+            inputs.forEach(inp => {
+                if (inp.value !== "") {
+                    valoresUsados.add(inp.value);
+                }
+            });
+
+            let inputAtual = botaoAtivo.closest('.card-coluna').querySelector('.input-valor-mapeado');
+            let meuValor = inputAtual.value;
+
+            let botoesModal = document.querySelectorAll('.btn-opcao');
+            
+            botoesModal.forEach(btn => {
+                let match = btn.getAttribute('onclick').match(/'([^']*)'/);
+                if (match) {
+                    let valorBotao = match[1];
+                    
+                    if (valorBotao !== "" && valoresUsados.has(valorBotao) && valorBotao !== meuValor) {
+                        btn.classList.add('indisponivel'); 
+                    } else {
+                        btn.classList.remove('indisponivel');
+                    }
+
+                    if (valorBotao === meuValor && valorBotao !== "") {
+                        btn.classList.add('selecionado');
+                    } else {
+                        btn.classList.remove('selecionado');
+                    }
+                }
+            });
+        }
+    </script>
+
 </body>
 </html>
