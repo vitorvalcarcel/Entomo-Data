@@ -8,6 +8,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.vitor.entomodata.model.Exemplar;
 import com.vitor.entomodata.model.OpcaoConflito;
+import com.vitor.entomodata.model.ColunaExcelDTO;
 import com.vitor.entomodata.exception.DuplicidadeException;
 import com.vitor.entomodata.repository.ExemplarRepository;
 
@@ -35,6 +36,44 @@ public class ImportacaoService {
     private ExemplarRepository exemplarRepository;
 
     private final DataFormatter dataFormatter = new DataFormatter();
+
+    public List<ColunaExcelDTO> analisarArquivoExcel(MultipartFile arquivo) throws IOException {
+        List<ColunaExcelDTO> colunas = new ArrayList<>();
+
+        try (InputStream is = arquivo.getInputStream();
+             Workbook workbook = new XSSFWorkbook(is)) {
+
+            Sheet sheet = workbook.getSheetAt(0);
+            Row linhaCabecalho = sheet.getRow(0);
+
+            if (linhaCabecalho != null) {
+                for (Cell cell : linhaCabecalho) {
+                    String nomeColuna = cell.getStringCellValue();
+                    int indiceColuna = cell.getColumnIndex();
+                    
+                    List<String> amostras = new ArrayList<>();
+                    int linhasVerificadas = 0;
+                    int linhasEncontradas = 0;
+                    
+                    for (int i = 1; i <= sheet.getLastRowNum() && linhasEncontradas < 3 && linhasVerificadas < 100; i++) {
+                        Row rowData = sheet.getRow(i);
+                        if (rowData != null) {
+                            Cell cellData = rowData.getCell(indiceColuna);
+                            String valor = getValorCelula(cellData).trim();
+                            
+                            if (!valor.isEmpty()) {
+                                amostras.add(valor);
+                                linhasEncontradas++;
+                            }
+                        }
+                        linhasVerificadas++;
+                    }
+                    colunas.add(new ColunaExcelDTO(nomeColuna, amostras));
+                }
+            }
+        }
+        return colunas;
+    }
 
     public List<String> lerCabecalhos(MultipartFile arquivo) throws IOException {
         List<String> cabecalhos = new ArrayList<>();
@@ -142,7 +181,6 @@ public class ImportacaoService {
 
                 for (Integer numeroLinha : linhas) {
                     Row row = sheet.getRow(numeroLinha - 1);
-                    
                     Map<String, String> dadosDaLinha = new LinkedHashMap<>();
                     
                     for (Map.Entry<String, String> colEntry : mapaDeColunas.entrySet()) {
