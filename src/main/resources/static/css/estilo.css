@@ -349,3 +349,27 @@ tr:hover td { background-color: #f8fbfd; }
 .btn-opcao:hover { border-color: #3498db; background: #f0f8ff; color: #2980b9; transform: translateY(-1px); }
 .btn-opcao.selecionado { background: #3498db; color: white; border-color: #2980b9; }
 .btn-opcao.indisponivel { display: none; }
+
+/* === BOTÕES DE AÇÃO NA TABELA === */
+.btn-acao {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    text-decoration: none;
+    margin: 0 2px;
+    font-size: 16px;
+    transition: background-color 0.2s;
+}
+
+.btn-editar:hover {
+    background-color: #e8f4fd;
+    border: 1px solid #b6d4fe;
+}
+
+.btn-excluir:hover {
+    background-color: #fce4e4;
+    border: 1px solid #fcc2c3;
+}

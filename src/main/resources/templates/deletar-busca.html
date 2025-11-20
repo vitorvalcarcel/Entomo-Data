@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Apagar Exemplares</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" th:href="@{/css/estilo.css}">
+</head>
+<body>
+
+    <div class="header-container" style="border-left: 5px solid #c0392b;">
+        <h1 style="color: #c0392b;">🗑️ Apagar Registros <span style="font-weight: normal; font-size: 0.8em; color: #7f8c8d;">| Gestão de Banco de Dados</span></h1>
+    </div>
+
+    <div th:if="${erro}" style="background-color: #fce4e4; border: 1px solid #fcc2c3; padding: 15px; border-radius: 8px; margin-bottom: 20px; color: #cc0033;">
+        <strong>Atenção:</strong> <span th:text="${erro}"></span>
+    </div>
+
+    <div class="grupo-campos" style="max-width: 700px; margin: 0 auto;">
+        <p style="margin-top: 0; font-weight: 600; color: #555;">Informe os códigos dos exemplares que deseja excluir.</p>
+        <p style="color: #7f8c8d; font-size: 13px; margin-bottom: 15px;">
+            Você pode colar uma lista do Excel ou digitar um código por linha. O sistema irá verificar a existência de cada um antes de apagar.
+        </p>
+
+        <form th:action="@{/deletar/verificar}" method="post">
+            
+            <label for="codigosRaw">Códigos (Um por linha):</label>
+            <textarea name="codigosRaw" id="codigosRaw" rows="10" 
+                      style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace;" 
+                      placeholder="A001&#10;A002&#10;B055..." required></textarea>
+            
+            <div style="margin-top: 20px; display: flex; justify-content: space-between;">
+                <a href="/" class="btn btn-paginacao">Voltar</a>
+                <button type="submit" class="btn btn-salvar" style="background-color: #e74c3c;">Verificar Registros >></button>
+            </div>
+        </form>
+    </div>
+
+</body>
+</html>

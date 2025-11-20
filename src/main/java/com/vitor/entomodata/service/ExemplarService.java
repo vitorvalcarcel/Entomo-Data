@@ -20,18 +20,13 @@ public class ExemplarService {
     @Autowired
     private ExemplarRepository repository;
 
-    // Agora recebe campo e direção de ordenação
     public Page<Exemplar> buscarTodosPaginado(int numeroPagina, int tamanhoPagina, String sortField, String sortDir, Exemplar filtro) {
-        
-        // Configura a ordenação
         Sort sort = sortDir.equalsIgnoreCase("asc") 
                 ? Sort.by(sortField).ascending() 
                 : Sort.by(sortField).descending();
 
-        // Cria a página com a ordenação embutida
         Pageable paginacao = PageRequest.of(numeroPagina, tamanhoPagina, sort);
 
-        // Configura o filtro (busca parcial e case insensitive)
         ExampleMatcher matcher = ExampleMatcher.matching()
                 .withIgnoreCase()
                 .withStringMatcher(ExampleMatcher.StringMatcher.CONTAINING);
@@ -51,5 +46,13 @@ public class ExemplarService {
     
     public Exemplar buscarPorId(String cod) {
         return repository.findById(cod).orElse(null);
+    }
+
+    public List<Exemplar> buscarPorListaDeCodigos(List<String> codigos) {
+        return repository.findAllById(codigos);
+    }
+
+    public void deletarPorListaDeCodigos(List<String> codigos) {
+        repository.deleteAllById(codigos);
     }
 }

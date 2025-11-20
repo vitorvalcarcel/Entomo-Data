@@ -8,7 +8,6 @@
     <script>
         let delayTimer;
 
-        // --- LÓGICA DE FILTRO E ORDENAÇÃO ---
         function filtrar(pagina) {
             clearTimeout(delayTimer);
             delayTimer = setTimeout(function() {
@@ -16,22 +15,16 @@
             }, 300);
         }
 
-        // Função chamada ao clicar no título da coluna
         function ordenar(campo) {
             let currentField = document.getElementById('sortField').value;
             let currentDir = document.getElementById('sortDir').value;
-            
-            // Se clicou na mesma coluna, inverte a direção. Se não, volta para ASC.
             let newDir = 'asc';
             if (campo === currentField) {
                 newDir = (currentDir === 'asc') ? 'desc' : 'asc';
             }
-            
-            // Atualiza os hidden inputs e dispara a requisição
             document.getElementById('sortField').value = campo;
             document.getElementById('sortDir').value = newDir;
-            
-            filtrar(0); // Volta para a primeira página ao reordenar
+            filtrar(0);
         }
 
         function enviarRequisicao(pagina) {
@@ -43,8 +36,8 @@
             let params = new URLSearchParams();
             params.append('page', pagina);
             params.append('size', size);
-            params.append('sort', sort); // Envia ordenação
-            params.append('dir', dir);   // Envia direção
+            params.append('sort', sort);
+            params.append('dir', dir);
 
             for (let input of inputs) {
                 if (input.value) {
@@ -67,7 +60,6 @@
             filtrar(0);
         }
 
-        // --- UI ---
         function toggleFiltros() {
             let painel = document.getElementById('painelFiltros');
             let btn = document.getElementById('btnFiltros');
@@ -107,6 +99,23 @@
             tabelaContainer.onscroll = function() { topo.scrollLeft = tabelaContainer.scrollLeft; };
         }
 
+        // --- FUNÇÕES PARA O MODAL DE EXCLUSÃO ---
+        function abrirModalExclusao(cod) {
+            let modal = document.getElementById('modalExclusaoIndividual');
+            let spanCod = document.getElementById('codExclusao');
+            let btnConfirmar = document.getElementById('btnConfirmarExclusao');
+            
+            spanCod.innerText = cod;
+            // Define o link de deletar no botão de confirmação
+            btnConfirmar.href = "/deletar/" + cod;
+            
+            modal.classList.add('ativo');
+        }
+
+        function fecharModalExclusao() {
+            document.getElementById('modalExclusaoIndividual').classList.remove('ativo');
+        }
+
         window.onload = function() {
             sincronizarRolagem();
             let inputs = document.querySelectorAll('.filtro-input');
@@ -139,8 +148,9 @@
     </div>
 
     <div style="margin-bottom: 20px;">
-        <a href="/novo" style="text-decoration: none;"><button class="btn btn-novo" style="margin-right: 10px;">+ Novo Exemplar</button></a>
-        <a href="/importar" style="text-decoration: none;"><button class="btn btn-importar">📂 Importar Excel</button></a>
+        <a href="/novo" style="text-decoration: none;"><button class="btn btn-novo" style="margin-right: 10px;">Novo Exemplar</button></a>
+        <a href="/importar" style="text-decoration: none;"><button class="btn btn-importar" style="margin-right: 10px;">📂 Importar Excel</button></a>
+        <a href="/deletar" style="text-decoration: none;"><button class="btn btn-salvar" style="background-color: #e74c3c; box-shadow: 0 2px 4px rgba(231, 76, 60, 0.3);">🗑️ Apagar em Massa</button></a>
     </div>
 
     <button id="btnFiltros" onclick="toggleFiltros()" class="btn btn-filtro">
@@ -180,14 +190,11 @@
     </div>
 
     <div id="area-tabela" th:fragment="tabela-resultados" class="card-tabela">
-        
         <input type="hidden" id="sortField" th:value="${sortField}">
         <input type="hidden" id="sortDir" th:value="${sortDir}">
 
         <div style="padding: 15px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: flex-end;">
-            <span class="total-badge">
-                Total: <span th:text="${totalItems}">0</span>
-            </span>
+            <span class="total-badge">Total: <span th:text="${totalItems}">0</span></span>
         </div>
 
         <div id="scrollTopWrapper" class="scroll-topo-wrapper">
@@ -198,6 +205,7 @@
             <table>
                 <thead>
                     <tr>
+                        <th style="width: 80px; text-align: center;">Ações</th>
                         <th onclick="ordenar('cod')" class="sortable">Cód <span th:if="${sortField == 'cod'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
                         <th onclick="ordenar('especie')" class="sortable">Espécie <span th:if="${sortField == 'especie'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
                         <th onclick="ordenar('sexo')" class="sortable">Sexo <span th:if="${sortField == 'sexo'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
@@ -229,6 +237,16 @@
                 </thead>
                 <tbody>
                     <tr th:each="abelha : ${listaDeAbelhas.content}">
+                        <td style="white-space: nowrap; text-align: center;">
+                            <a th:href="@{/editar/{cod}(cod=${abelha.cod})}" title="Editar" class="btn-acao btn-editar">✏️</a>
+                            
+                            <button type="button" 
+                                    th:data-cod="${abelha.cod}"
+                                    onclick="abrirModalExclusao(this.getAttribute('data-cod'))"
+                                    title="Apagar" 
+                                    class="btn-acao btn-excluir" 
+                                    style="border:none; cursor:pointer;">🗑️</button>
+                        </td>
                         <td th:text="${abelha.cod}"></td>
                         <td th:text="${abelha.especie}"></td>
                         <td th:text="${abelha.sexo}"></td>
@@ -263,7 +281,8 @@
 
         <div style="padding: 20px; text-align: center; background-color: #fcfcfc; border-top: 1px solid #f1f1f1;" th:if="${totalPages > 1}">
             <button th:if="${currentPage > 0}" 
-               th:onclick="'filtrar(' + (${currentPage} - 1) + ')'"
+               th:data-page="${currentPage - 1}"
+               onclick="filtrar(this.getAttribute('data-page'))"
                class="btn btn-paginacao">&laquo; Anterior</button>
             
             <span style="margin: 0 15px; font-weight: 600; color: #555;">
@@ -271,8 +290,29 @@
             </span>
 
             <button th:if="${currentPage < totalPages - 1}" 
-               th:onclick="'filtrar(' + (${currentPage} + 1) + ')'"
+               th:data-page="${currentPage + 1}"
+               onclick="filtrar(this.getAttribute('data-page'))"
                class="btn btn-paginacao">Próximo &raquo;</button>
+        </div>
+    </div>
+
+    <div id="modalExclusaoIndividual" class="modal-overlay" onclick="if(event.target === this) fecharModalExclusao()">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header" style="background-color: #fdedec; border-bottom: 1px solid #fadbd8;">
+                <h3 style="color: #c0392b;">⚠️ Confirmar Exclusão</h3>
+                <button type="button" class="btn-fechar" onclick="fecharModalExclusao()">×</button>
+            </div>
+            <div class="modal-body" style="text-align: center; padding: 30px;">
+                <p style="font-size: 16px; color: #555; margin-bottom: 20px;">
+                    Tem certeza que deseja apagar o exemplar <strong id="codExclusao" style="color: #c0392b; font-size: 1.2em;"></strong>?
+                </p>
+                <p style="font-size: 13px; color: #999;">Esta ação não pode ser desfeita.</p>
+                
+                <div style="margin-top: 30px; display: flex; justify-content: center; gap: 15px;">
+                    <button onclick="fecharModalExclusao()" class="btn btn-paginacao">Cancelar</button>
+                    <a id="btnConfirmarExclusao" href="#" class="btn btn-salvar" style="background-color: #c0392b;">Sim, Apagar</a>
+                </div>
+            </div>
         </div>
     </div>
 
