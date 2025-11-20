@@ -23,6 +23,7 @@ public class ExemplarController {
     @Autowired
     private ExemplarService service;
 
+    // === LISTAGEM ===
     @GetMapping("/")
     public String listarExemplares(
             Model model,
@@ -62,53 +63,66 @@ public class ExemplarController {
         model.addAttribute("sortDir", dir);
     }
 
+    // === CADASTRO (NOVO) ===
+
     @GetMapping("/novo")
     public String mostrarFormulario(Model model) {
         model.addAttribute("exemplar", new Exemplar());
-        return "cadastro";
+        // Removemos a flag 'edicao' pois agora temos telas separadas
+        return "cadastro"; 
     }
 
     @PostMapping("/salvar")
     public String salvarExemplar(Exemplar exemplar, Model model) {
+        // Se tentar criar um código que já existe...
         if (service.buscarPorId(exemplar.getCod()) != null) {
             Exemplar existente = service.buscarPorId(exemplar.getCod());
             
             model.addAttribute("novo", exemplar);
             model.addAttribute("antigo", existente);
             
-            return "cadastro-conflito";
+            return "cadastro-conflito"; // Tela de aviso
         }
 
         service.salvar(exemplar);
         return "redirect:/";
     }
 
+    // === EDIÇÃO (FLUXO COMPLETO) ===
+
+    // 1. Início: Clicou no botão "Lápis" na tabela
     @GetMapping("/editar/{cod}")
     public String editarExemplar(@PathVariable String cod, Model model) {
         Exemplar original = service.buscarPorId(cod);
         if (original == null) return "redirect:/";
         
-        model.addAttribute("exemplar", original);
-        model.addAttribute("original", original);
-        return "editar";
+        model.addAttribute("exemplar", original); // Form preenchido com dados do banco
+        model.addAttribute("original", original); // Original para comparação
+        return "editar"; // Abre o editar.html
     }
     
-    @PostMapping("/editar/retornar")
-    public String retornarParaEdicao(Exemplar exemplar, Model model) {
+    // 2. Início Alternativo: Veio da tela de Conflito de Cadastro
+    @PostMapping("/editar/conflito")
+    public String editarConflitoCadastro(Exemplar exemplar, Model model) {
+        // Busca o original no banco para servir de base de comparação
         Exemplar original = service.buscarPorId(exemplar.getCod());
         
-        if (original == null) original = new Exemplar(); 
-        
+        // Manda para a tela de edição:
+        // 'exemplar': Tem os dados NOVOS que o usuário digitou (para não perder o trabalho)
+        // 'original': Tem os dados VELHOS do banco (para saber o que mudou)
         model.addAttribute("exemplar", exemplar);
         model.addAttribute("original", original);
+        
         return "editar"; 
     }
 
+    // 3. Meio: Clicou em "Revisar" na tela de edição
     @PostMapping("/editar/revisar")
     public String revisarEdicao(Exemplar exemplar, Model model) {
         Exemplar original = service.buscarPorId(exemplar.getCod());
         
         if (original == null) { 
+            // Segurança: se o registro sumiu, salva como novo direto
             service.salvar(exemplar); 
             return "redirect:/";
         }
@@ -116,20 +130,36 @@ public class ExemplarController {
         model.addAttribute("novo", exemplar);
         model.addAttribute("antigo", original);
         
-        return "edicao-confirmar";
+        return "edicao-confirmar"; // Tela de Antes vs Depois
     }
 
+    // 4. Retorno: Clicou em "Voltar" na tela de revisão
+    @PostMapping("/editar/retornar")
+    public String retornarParaEdicao(Exemplar exemplar, Model model) {
+        Exemplar original = service.buscarPorId(exemplar.getCod());
+        if (original == null) original = new Exemplar();
+        
+        model.addAttribute("exemplar", exemplar); // Mantém o que estava sendo editado
+        model.addAttribute("original", original);
+        return "editar"; 
+    }
+
+    // 5. Fim: Confirmou a revisão
     @PostMapping("/editar/confirmar")
     public String confirmarEdicao(Exemplar exemplar) {
         service.salvar(exemplar);
         return "redirect:/?msg=EdicaoSucesso";
     }
 
+    // === EXCLUSÃO INDIVIDUAL ===
+
     @GetMapping("/deletar/{cod}")
     public String deletarExemplarIndividual(@PathVariable String cod) {
         service.deletarPorListaDeCodigos(Arrays.asList(cod));
         return "redirect:/";
     }
+
+    // === EXCLUSÃO EM MASSA ===
 
     @GetMapping("/deletar")
     public String telaDeletar() {
@@ -138,19 +168,36 @@ public class ExemplarController {
 
     @PostMapping("/deletar/verificar")
     public String verificarExclusao(@RequestParam("codigosRaw") String codigosRaw, Model model) {
-        List<String> codigosDigitados = Arrays.stream(codigosRaw.split("[\\r\\n,]+")).map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toList());
-        if (codigosDigitados.isEmpty()) { model.addAttribute("erro", "Nenhum código foi informado."); return "deletar-busca"; }
+        List<String> codigosDigitados = Arrays.stream(codigosRaw.split("[\\r\\n,]+"))
+                                              .map(String::trim)
+                                              .filter(s -> !s.isEmpty())
+                                              .collect(Collectors.toList());
+
+        if (codigosDigitados.isEmpty()) {
+            model.addAttribute("erro", "Nenhum código foi informado.");
+            return "deletar-busca";
+        }
+
         List<Exemplar> encontrados = service.buscarPorListaDeCodigos(codigosDigitados);
         List<String> idsEncontrados = encontrados.stream().map(Exemplar::getCod).collect(Collectors.toList());
-        List<String> naoEncontrados = codigosDigitados.stream().filter(c -> !idsEncontrados.contains(c)).collect(Collectors.toList());
+        List<String> naoEncontrados = codigosDigitados.stream()
+                                                      .filter(c -> !idsEncontrados.contains(c))
+                                                      .collect(Collectors.toList());
+
         model.addAttribute("encontrados", encontrados);
         model.addAttribute("naoEncontrados", naoEncontrados);
         model.addAttribute("qtdParaApagar", encontrados.size());
+
         return "deletar-confirma";
     }
 
     @PostMapping("/deletar/confirmar")
-    public String confirmarExclusao(@RequestParam("idsParaDeletar") List<String> ids, @RequestParam("senhaConfirmacao") int senhaDigitada, @RequestParam("qtdReal") int qtdReal, Model model) {
+    public String confirmarExclusao(
+            @RequestParam("idsParaDeletar") List<String> ids,
+            @RequestParam("senhaConfirmacao") int senhaDigitada,
+            @RequestParam("qtdReal") int qtdReal,
+            Model model
+    ) {
         if (senhaDigitada != qtdReal) {
             List<Exemplar> encontrados = service.buscarPorListaDeCodigos(ids);
             model.addAttribute("encontrados", encontrados);
@@ -159,6 +206,7 @@ public class ExemplarController {
             model.addAttribute("erro", "Olha, você digitou o número errado. Você sabe o que tá fazendo? Presta atenção!");
             return "deletar-confirma"; 
         }
+
         service.deletarPorListaDeCodigos(ids);
         return "redirect:/?msg=ExclusaoSucesso";
     }
