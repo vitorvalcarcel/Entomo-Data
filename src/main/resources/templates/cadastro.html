@@ -1,15 +1,9 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <title>Novo Cadastro</title>
-    <meta charset="UTF-8">
-    <link rel="stylesheet" th:href="@{/css/estilo.css}">
-</head>
+<head th:replace="~{fragments :: head('Novo Cadastro')}"></head>
 <body>
 
-    <div class="header-container">
-        <h1>📝 Novo Exemplar <span style="font-weight: normal; font-size: 0.8em; color: #7f8c8d;">| Cadastro Limpo</span></h1>
-    </div>
+    <div th:replace="~{fragments :: page-header('📝 Novo Exemplar', 'Cadastro Limpo', '#3498db')}"></div>
 
     <form th:action="@{/salvar}" th:object="${exemplar}" method="post">
 
@@ -23,53 +17,15 @@
             </div>
         </div>
 
-        <div class="grupo-campos">
-            <span class="titulo-grupo">Taxonomia</span>
+        <div th:each="grupo : ${camposHelper.camposAgrupados}" class="grupo-campos">
+            <span class="titulo-grupo" th:text="${grupo.key}">Taxonomia</span>
             <div class="grid-form">
-                <div class="form-item"><label>Espécie:</label><input type="text" th:field="*{especie}"></div>
-                <div class="form-item"><label>Família:</label><input type="text" th:field="*{familia}"></div>
-                <div class="form-item"><label>Subfamília:</label><input type="text" th:field="*{subfamilia}"></div>
-                <div class="form-item"><label>Tribo:</label><input type="text" th:field="*{tribo}"></div>
-                <div class="form-item"><label>Subtribo:</label><input type="text" th:field="*{subtribo}"></div>
-                <div class="form-item"><label>Gênero:</label><input type="text" th:field="*{genero}"></div>
-                <div class="form-item"><label>Subgênero:</label><input type="text" th:field="*{subgenero}"></div>
-                <div class="form-item"><label>Subespécie:</label><input type="text" th:field="*{subespecie}"></div>
-                <div class="form-item"><label>Autor:</label><input type="text" th:field="*{autor}"></div>
-                <div class="form-item"><label>Determinador:</label><input type="text" th:field="*{determinador}"></div>
-                <div class="form-item"><label>Sexo:</label><input type="text" th:field="*{sexo}"></div>
-                <div class="form-item"><label>Planta Associada:</label><input type="text" th:field="*{especieVegetalAssociada}"></div>
-            </div>
-        </div>
-
-        <div class="grupo-campos">
-            <span class="titulo-grupo">Armazenamento</span>
-            <div class="grid-form">
-                <div class="form-item"><label>Gaveta:</label><input type="text" th:field="*{gaveta}"></div>
-                <div class="form-item"><label>Caixa:</label><input type="text" th:field="*{caixa}"></div>
-            </div>
-        </div>
-
-        <div class="grupo-campos">
-            <span class="titulo-grupo">Localização</span>
-            <div class="grid-form">
-                <div class="form-item"><label>País:</label><input type="text" th:field="*{pais}"></div>
-                <div class="form-item"><label>Estado:</label><input type="text" th:field="*{estado}"></div>
-                <div class="form-item"><label>Cidade:</label><input type="text" th:field="*{cidade}"></div>
-                <div class="form-item"><label>Localidade:</label><input type="text" th:field="*{localidade}"></div>
-                <div class="form-item"><label>Proprietário:</label><input type="text" th:field="*{proprietarioDoLocalDeColeta}"></div>
-                <div class="form-item"><label>Bioma:</label><input type="text" th:field="*{bioma}"></div>
-                <div class="form-item"><label>Latitude:</label><input type="text" th:field="*{latitude}"></div>
-                <div class="form-item"><label>Longitude:</label><input type="text" th:field="*{longitude}"></div>
-            </div>
-        </div>
-
-        <div class="grupo-campos">
-            <span class="titulo-grupo">Coleta</span>
-            <div class="grid-form">
-                <div class="form-item"><label>Coletor:</label><input type="text" th:field="*{coletor}"></div>
-                <div class="form-item"><label>Método:</label><input type="text" th:field="*{metodoDeAquisicao}"></div>
-                <div class="form-item"><label>Data:</label><input type="text" th:field="*{data}" placeholder="DD/MM/AAAA"></div>
-                <div class="form-item"><label>Horário:</label><input type="text" th:field="*{horarioColeta}"></div>
+                
+                <div th:each="campo : ${grupo.value}" class="form-item">
+                    <label th:text="${campo.value} + ':'">Label:</label>
+                    <input type="text" th:field="*{__${campo.key}__}">
+                </div>
+                
             </div>
         </div>
 

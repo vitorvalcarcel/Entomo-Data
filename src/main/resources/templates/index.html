@@ -1,10 +1,8 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <title>EntomoData</title>
-    <meta charset="UTF-8">
-    <link rel="stylesheet" th:href="@{/css/estilo.css}">
-    
+<head th:replace="~{fragments :: head('EntomoData - Início')}"></head>
+<body>
+
     <script>
         let delayTimer;
 
@@ -15,15 +13,20 @@
             }, 300);
         }
 
-        function ordenar(campo) {
+        // Função corrigida para ler do atributo data-field
+        function ordenar(elemento) {
+            let campo = elemento.getAttribute('data-field');
             let currentField = document.getElementById('sortField').value;
             let currentDir = document.getElementById('sortDir').value;
+            
             let newDir = 'asc';
             if (campo === currentField) {
                 newDir = (currentDir === 'asc') ? 'desc' : 'asc';
             }
+            
             document.getElementById('sortField').value = campo;
             document.getElementById('sortDir').value = newDir;
+            
             filtrar(0);
         }
 
@@ -99,14 +102,12 @@
             tabelaContainer.onscroll = function() { topo.scrollLeft = tabelaContainer.scrollLeft; };
         }
 
-        // --- FUNÇÕES PARA O MODAL DE EXCLUSÃO ---
         function abrirModalExclusao(cod) {
             let modal = document.getElementById('modalExclusaoIndividual');
             let spanCod = document.getElementById('codExclusao');
             let btnConfirmar = document.getElementById('btnConfirmarExclusao');
             
             spanCod.innerText = cod;
-            // Define o link de deletar no botão de confirmação
             btnConfirmar.href = "/deletar/" + cod;
             
             modal.classList.add('ativo');
@@ -130,12 +131,9 @@
             });
         };
     </script>
-</head>
-<body>
 
     <div class="header-container">
-        <h1>🐝 EntomoData <span style="font-weight: normal; font-size: 0.8em; color: #7f8c8d;">| Gerenciamento de Coleção</span></h1>
-        
+        <h1>🐝 EntomoData <span style="font-weight: normal; font-size: 0.8em; color: #7f8c8d;">| Gerenciamento</span></h1>
         <div>
             <span style="font-size: 14px; color: #666; margin-right: 10px;">Exibir:</span>
             <select id="sizeSelect" onchange="mudarTamanho()" class="seletor-pagina">
@@ -148,44 +146,25 @@
     </div>
 
     <div style="margin-bottom: 20px;">
-        <a href="/novo" style="text-decoration: none;"><button class="btn btn-novo" style="margin-right: 10px;">Novo Exemplar</button></a>
+        <a href="/novo" style="text-decoration: none;"><button class="btn btn-novo" style="margin-right: 10px;">+ Novo Exemplar</button></a>
         <a href="/importar" style="text-decoration: none;"><button class="btn btn-importar" style="margin-right: 10px;">📂 Importar Excel</button></a>
         <a href="/deletar" style="text-decoration: none;"><button class="btn btn-salvar" style="background-color: #e74c3c; box-shadow: 0 2px 4px rgba(231, 76, 60, 0.3);">🗑️ Apagar em Massa</button></a>
     </div>
 
-    <button id="btnFiltros" onclick="toggleFiltros()" class="btn btn-filtro">
-        <span>🔍</span> Filtrar Dados
-    </button>
+    <button id="btnFiltros" onclick="toggleFiltros()" class="btn btn-filtro"><span>🔍</span> Filtrar Dados</button>
 
     <div id="painelFiltros" class="painel-filtros">
         <div class="grid-filtros">
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Cód</label><input name="cod" th:value="${filtro.cod}" class="filtro-input" onkeyup="filtrar(0)"></div>
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Espécie</label><input name="especie" th:value="${filtro.especie}" class="filtro-input" onkeyup="filtrar(0)"></div>
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Sexo</label><input name="sexo" th:value="${filtro.sexo}" class="filtro-input" onkeyup="filtrar(0)"></div>
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Família</label><input name="familia" th:value="${filtro.familia}" class="filtro-input" onkeyup="filtrar(0)"></div>
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Subfamília</label><input name="subfamilia" th:value="${filtro.subfamilia}" class="filtro-input" onkeyup="filtrar(0)"></div>
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Tribo</label><input name="tribo" th:value="${filtro.tribo}" class="filtro-input" onkeyup="filtrar(0)"></div>
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Subtribo</label><input name="subtribo" th:value="${filtro.subtribo}" class="filtro-input" onkeyup="filtrar(0)"></div>
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Gênero</label><input name="genero" th:value="${filtro.genero}" class="filtro-input" onkeyup="filtrar(0)"></div>
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Subgênero</label><input name="subgenero" th:value="${filtro.subgenero}" class="filtro-input" onkeyup="filtrar(0)"></div>
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Subespécie</label><input name="subespecie" th:value="${filtro.subespecie}" class="filtro-input" onkeyup="filtrar(0)"></div>
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Autor</label><input name="autor" th:value="${filtro.autor}" class="filtro-input" onkeyup="filtrar(0)"></div>
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Determinador</label><input name="determinador" th:value="${filtro.determinador}" class="filtro-input" onkeyup="filtrar(0)"></div>
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Planta Assoc.</label><input name="especieVegetalAssociada" th:value="${filtro.especieVegetalAssociada}" class="filtro-input" onkeyup="filtrar(0)"></div>
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Gaveta</label><input name="gaveta" th:value="${filtro.gaveta}" class="filtro-input" onkeyup="filtrar(0)"></div>
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Caixa</label><input name="caixa" th:value="${filtro.caixa}" class="filtro-input" onkeyup="filtrar(0)"></div>
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> País</label><input name="pais" th:value="${filtro.pais}" class="filtro-input" onkeyup="filtrar(0)"></div>
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Estado</label><input name="estado" th:value="${filtro.estado}" class="filtro-input" onkeyup="filtrar(0)"></div>
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Cidade</label><input name="cidade" th:value="${filtro.cidade}" class="filtro-input" onkeyup="filtrar(0)"></div>
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Localidade</label><input name="localidade" th:value="${filtro.localidade}" class="filtro-input" onkeyup="filtrar(0)"></div>
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Proprietário</label><input name="proprietarioDoLocalDeColeta" th:value="${filtro.proprietarioDoLocalDeColeta}" class="filtro-input" onkeyup="filtrar(0)"></div>
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Bioma</label><input name="bioma" th:value="${filtro.bioma}" class="filtro-input" onkeyup="filtrar(0)"></div>
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Latitude</label><input name="latitude" th:value="${filtro.latitude}" class="filtro-input" onkeyup="filtrar(0)"></div>
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Longitude</label><input name="longitude" th:value="${filtro.longitude}" class="filtro-input" onkeyup="filtrar(0)"></div>
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Coletor</label><input name="coletor" th:value="${filtro.coletor}" class="filtro-input" onkeyup="filtrar(0)"></div>
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Data</label><input name="data" th:value="${filtro.data}" class="filtro-input" onkeyup="filtrar(0)"></div>
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Horário</label><input name="horarioColeta" th:value="${filtro.horarioColeta}" class="filtro-input" onkeyup="filtrar(0)"></div>
-            <div class="item-filtro"><label class="toggle-filtro"><input type="checkbox" onchange="toggleInput(this)"> Método</label><input name="metodoDeAquisicao" th:value="${filtro.metodoDeAquisicao}" class="filtro-input" onkeyup="filtrar(0)"></div>
+            <div th:each="campo : ${camposHelper.todosCampos}" class="item-filtro">
+                <label class="toggle-filtro">
+                    <input type="checkbox" onchange="toggleInput(this)"> 
+                    <span th:text="${campo.value}">Nome</span>
+                </label>
+                <input th:name="${campo.key}" 
+                       th:value="${filtro.__${campo.key}__}" 
+                       class="filtro-input" 
+                       onkeyup="filtrar(0)">
+            </div>
         </div>
     </div>
 
@@ -206,33 +185,14 @@
                 <thead>
                     <tr>
                         <th style="width: 80px; text-align: center;">Ações</th>
-                        <th onclick="ordenar('cod')" class="sortable">Cód <span th:if="${sortField == 'cod'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
-                        <th onclick="ordenar('especie')" class="sortable">Espécie <span th:if="${sortField == 'especie'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
-                        <th onclick="ordenar('sexo')" class="sortable">Sexo <span th:if="${sortField == 'sexo'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
-                        <th onclick="ordenar('familia')" class="sortable">Família <span th:if="${sortField == 'familia'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
-                        <th onclick="ordenar('subfamilia')" class="sortable">Subfamília <span th:if="${sortField == 'subfamilia'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
-                        <th onclick="ordenar('tribo')" class="sortable">Tribo <span th:if="${sortField == 'tribo'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
-                        <th onclick="ordenar('subtribo')" class="sortable">Subtribo <span th:if="${sortField == 'subtribo'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
-                        <th onclick="ordenar('genero')" class="sortable">Gênero <span th:if="${sortField == 'genero'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
-                        <th onclick="ordenar('subgenero')" class="sortable">Subgênero <span th:if="${sortField == 'subgenero'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
-                        <th onclick="ordenar('subespecie')" class="sortable">Subespécie <span th:if="${sortField == 'subespecie'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
-                        <th onclick="ordenar('autor')" class="sortable">Autor <span th:if="${sortField == 'autor'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
-                        <th onclick="ordenar('determinador')" class="sortable">Determinador <span th:if="${sortField == 'determinador'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
-                        <th onclick="ordenar('especieVegetalAssociada')" class="sortable">Planta Assoc. <span th:if="${sortField == 'especieVegetalAssociada'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
-                        <th onclick="ordenar('gaveta')" class="sortable">Gaveta <span th:if="${sortField == 'gaveta'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
-                        <th onclick="ordenar('caixa')" class="sortable">Caixa <span th:if="${sortField == 'caixa'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
-                        <th onclick="ordenar('pais')" class="sortable">País <span th:if="${sortField == 'pais'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
-                        <th onclick="ordenar('estado')" class="sortable">Estado <span th:if="${sortField == 'estado'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
-                        <th onclick="ordenar('cidade')" class="sortable">Cidade <span th:if="${sortField == 'cidade'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
-                        <th onclick="ordenar('localidade')" class="sortable">Localidade <span th:if="${sortField == 'localidade'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
-                        <th onclick="ordenar('proprietarioDoLocalDeColeta')" class="sortable">Proprietário <span th:if="${sortField == 'proprietarioDoLocalDeColeta'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
-                        <th onclick="ordenar('bioma')" class="sortable">Bioma <span th:if="${sortField == 'bioma'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
-                        <th onclick="ordenar('latitude')" class="sortable">Lat <span th:if="${sortField == 'latitude'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
-                        <th onclick="ordenar('longitude')" class="sortable">Long <span th:if="${sortField == 'longitude'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
-                        <th onclick="ordenar('coletor')" class="sortable">Coletor <span th:if="${sortField == 'coletor'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
-                        <th onclick="ordenar('data')" class="sortable">Data <span th:if="${sortField == 'data'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
-                        <th onclick="ordenar('horarioColeta')" class="sortable">Horário <span th:if="${sortField == 'horarioColeta'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
-                        <th onclick="ordenar('metodoDeAquisicao')" class="sortable">Método <span th:if="${sortField == 'metodoDeAquisicao'}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span></th>
+                        
+                        <th th:each="campo : ${camposHelper.todosCampos}" 
+                            th:data-field="${campo.key}"
+                            onclick="ordenar(this)" 
+                            class="sortable">
+                            <span th:text="${campo.value}">Nome</span>
+                            <span th:if="${sortField == campo.key}" th:text="${sortDir == 'asc' ? '▲' : '▼'}"></span>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -247,39 +207,17 @@
                                     class="btn-acao btn-excluir" 
                                     style="border:none; cursor:pointer;">🗑️</button>
                         </td>
-                        <td th:text="${abelha.cod}"></td>
-                        <td th:text="${abelha.especie}"></td>
-                        <td th:text="${abelha.sexo}"></td>
-                        <td th:text="${abelha.familia}"></td>
-                        <td th:text="${abelha.subfamilia}"></td>
-                        <td th:text="${abelha.tribo}"></td>
-                        <td th:text="${abelha.subtribo}"></td>
-                        <td th:text="${abelha.genero}"></td>
-                        <td th:text="${abelha.subgenero}"></td>
-                        <td th:text="${abelha.subespecie}"></td>
-                        <td th:text="${abelha.autor}"></td>
-                        <td th:text="${abelha.determinador}"></td>
-                        <td th:text="${abelha.especieVegetalAssociada}"></td>
-                        <td th:text="${abelha.gaveta}"></td>
-                        <td th:text="${abelha.caixa}"></td>
-                        <td th:text="${abelha.pais}"></td>
-                        <td th:text="${abelha.estado}"></td>
-                        <td th:text="${abelha.cidade}"></td>
-                        <td th:text="${abelha.localidade}"></td>
-                        <td th:text="${abelha.proprietarioDoLocalDeColeta}"></td>
-                        <td th:text="${abelha.bioma}"></td>
-                        <td th:text="${abelha.latitude}"></td>
-                        <td th:text="${abelha.longitude}"></td>
-                        <td th:text="${abelha.coletor}"></td>
-                        <td th:text="${abelha.data}"></td>
-                        <td th:text="${abelha.horarioColeta}"></td>
-                        <td th:text="${abelha.metodoDeAquisicao}"></td>
+                        
+                        <td th:each="campo : ${camposHelper.todosCampos}" 
+                            th:text="${abelha.__${campo.key}__}">
+                        </td>
                     </tr>
                 </tbody>
             </table>
         </div>
 
         <div style="padding: 20px; text-align: center; background-color: #fcfcfc; border-top: 1px solid #f1f1f1;" th:if="${totalPages > 1}">
+            
             <button th:if="${currentPage > 0}" 
                th:data-page="${currentPage - 1}"
                onclick="filtrar(this.getAttribute('data-page'))"
@@ -307,7 +245,6 @@
                     Tem certeza que deseja apagar o exemplar <strong id="codExclusao" style="color: #c0392b; font-size: 1.2em;"></strong>?
                 </p>
                 <p style="font-size: 13px; color: #999;">Esta ação não pode ser desfeita.</p>
-                
                 <div style="margin-top: 30px; display: flex; justify-content: center; gap: 15px;">
                     <button onclick="fecharModalExclusao()" class="btn btn-paginacao">Cancelar</button>
                     <a id="btnConfirmarExclusao" href="#" class="btn btn-salvar" style="background-color: #c0392b;">Sim, Apagar</a>
@@ -316,6 +253,5 @@
         </div>
     </div>
 
-    <br><br>
 </body>
 </html>

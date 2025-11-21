@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:fragment="head(titulo)">
+    <title th:text="${titulo}">EntomoData</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" th:href="@{/css/estilo.css}">
+    </head>
+
+<body>
+    <div th:fragment="page-header(titulo, subtitulo, cor)" 
+         class="header-container" 
+         th:style="'border-left: 5px solid ' + ${cor} + ';'">
+        <h1 th:style="'color: ' + ${cor} + ';'">
+            <span th:text="${titulo}">Título</span> 
+            <span style="font-weight: normal; font-size: 0.8em; color: #7f8c8d;">| <span th:text="${subtitulo}">Sub</span></span>
+        </h1>
+    </div>
+</body>
+</html>
