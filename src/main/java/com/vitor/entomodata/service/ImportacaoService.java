@@ -6,24 +6,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.vitor.entomodata.model.Exemplar;
-import com.vitor.entomodata.model.OpcaoConflito;
-import com.vitor.entomodata.model.ColunaExcelDTO;
-import com.vitor.entomodata.model.AnaliseBancoDTO;
+import com.vitor.entomodata.helper.ExcelHelper;
+import com.vitor.entomodata.model.*;
 import com.vitor.entomodata.exception.DuplicidadeException;
 import com.vitor.entomodata.repository.ExemplarRepository;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,8 +25,17 @@ public class ImportacaoService {
     
     @Autowired
     private ExemplarRepository exemplarRepository;
+    
+    @Autowired
+    private ExcelHelper excelHelper;
+    
+    public List<String> lerCabecalhos(MultipartFile arquivo) throws IOException {
+        return excelHelper.lerCabecalhos(arquivo);
+    }
 
-    private final DataFormatter dataFormatter = new DataFormatter();
+    public List<ColunaExcelDTO> analisarArquivoExcel(MultipartFile arquivo) throws IOException {
+        return excelHelper.analisarArquivoComAmostras(arquivo);
+    }
 
     public AnaliseBancoDTO analisarConflitosComBanco(List<Exemplar> listaDoExcel) {
         List<Exemplar> novos = new ArrayList<>();
@@ -67,11 +67,7 @@ public class ImportacaoService {
              Workbook workbook = new XSSFWorkbook(is)) {
 
             Sheet sheet = workbook.getSheetAt(0);
-            Row linhaCabecalho = sheet.getRow(0);
-            Map<String, Integer> indiceDasColunas = new HashMap<>();
-            for (Cell cell : linhaCabecalho) {
-                indiceDasColunas.put(cell.getStringCellValue(), cell.getColumnIndex());
-            }
+            Map<String, Integer> indiceDasColunas = excelHelper.mapearIndicesColunas(sheet);
             
             String nomeColunaCodigo = mapaDeColunas.get("cod");
             Integer idxCodigo = indiceDasColunas.get(nomeColunaCodigo);
@@ -81,7 +77,7 @@ public class ImportacaoService {
                 if (row == null) continue;
 
                 if (linhasEscolhidas != null && idxCodigo != null) {
-                    String codigoAtual = getValorCelula(row.getCell(idxCodigo)).trim();
+                    String codigoAtual = excelHelper.getValorCelula(row.getCell(idxCodigo)).trim();
                     if (linhasEscolhidas.containsKey(codigoAtual)) {
                         int linhaPermitida = linhasEscolhidas.get(codigoAtual);
                         if ((i + 1) != linhaPermitida) continue;
@@ -90,7 +86,7 @@ public class ImportacaoService {
 
                 String codigoNoExcel = null;
                 if(idxCodigo != null) {
-                     codigoNoExcel = getValorCelula(row.getCell(idxCodigo)).trim();
+                     codigoNoExcel = excelHelper.getValorCelula(row.getCell(idxCodigo)).trim();
                 }
                 
                 if (codigoNoExcel == null || codigoNoExcel.isEmpty()) continue;
@@ -98,39 +94,19 @@ public class ImportacaoService {
                 Exemplar exemplar = new Exemplar();
                 exemplar.setCod(codigoNoExcel);
                 
-                for (Map.Entry<String, String> entrada : mapaDeColunas.entrySet()) {
-                    String campoSistema = entrada.getKey();
-                    String colunaExcel = entrada.getValue();
-
-                    if (colunaExcel != null && !colunaExcel.isEmpty() && indiceDasColunas.containsKey(colunaExcel)) {
-                        int indice = indiceDasColunas.get(colunaExcel);
-                        Cell cell = row.getCell(indice);
-                        String valor = getValorCelula(cell);
-                        
-                        if (!valor.isEmpty()) {
-                            preencherCampo(exemplar, campoSistema, valor);
-                        }
-                    }
-                }
+                preencherExemplarComLinha(exemplar, row, mapaDeColunas, indiceDasColunas);
+                
                 exemplaresProcessados.add(exemplar);
             }
         }
         return exemplaresProcessados;
     }
 
-    // === LÓGICA DE MESCLAGEM INTELIGENTE (AGORA COMPLETA) ===
-
     public Map<String, Map<String, Set<String>>> executarMesclagemInteligente(String nomeArquivo, Map<String, String> mapaDeColunas, Map<String, List<Integer>> duplicatas) throws IOException {
-        // 1. Salva as linhas que NÃO são duplicatas (o resto da planilha)
         Set<Integer> linhasParaIgnorar = new HashSet<>();
-        for (List<Integer> linhas : duplicatas.values()) {
-            linhasParaIgnorar.addAll(linhas);
-        }
-        // Importante: Salva os não duplicados direto no banco por enquanto
-        // (Num fluxo ideal, deveríamos retornar tudo junto, mas para manter a lógica atual, salvamos os "limpos" e tratamos os "sujos")
+        for (List<Integer> linhas : duplicatas.values()) linhasParaIgnorar.addAll(linhas);
         salvarLinhasNaoDuplicadas(nomeArquivo, mapaDeColunas, linhasParaIgnorar);
 
-        // 2. Processa as duplicatas
         Map<String, List<OpcaoConflito>> dadosBrutos = detalharConflitos(nomeArquivo, mapaDeColunas, duplicatas);
         Map<String, Map<String, Set<String>>> conflitosReais = new HashMap<>();
 
@@ -138,53 +114,43 @@ public class ImportacaoService {
             String codigo = entry.getKey();
             List<OpcaoConflito> linhas = entry.getValue();
             
-            Exemplar exemplarFinal = new Exemplar();
+            Optional<Exemplar> existente = exemplarRepository.findById(codigo);
+            Exemplar exemplarFinal = existente.orElse(new Exemplar());
             exemplarFinal.setCod(codigo);
             
-            // Mapa para identificar conflitos neste código: Campo -> Valores Distintos
             Map<String, Set<String>> conflitosDesteCodigo = new HashMap<>();
             boolean temConflitoGeral = false;
-
-            // Descobre todos os campos presentes nessas linhas
+            
             Set<String> todosCampos = new HashSet<>();
             for(OpcaoConflito op : linhas) todosCampos.addAll(op.getDados().keySet());
 
             for (String campo : todosCampos) {
                 Set<String> valoresDistintos = new HashSet<>();
-                
                 for (OpcaoConflito linha : linhas) {
                     String val = linha.getDados().get(campo);
-                    if (val != null && !val.trim().isEmpty()) {
-                        valoresDistintos.add(val.trim());
-                    }
+                    if (val != null && !val.trim().isEmpty()) valoresDistintos.add(val.trim());
                 }
 
                 if (valoresDistintos.isEmpty()) {
-                    // Campo vazio em todas as linhas, ignora
+
                 } else if (valoresDistintos.size() == 1) {
-                    // Sucesso! Todas as linhas concordam (ou complementam vazios)
                     preencherCampo(exemplarFinal, campo, valoresDistintos.iterator().next());
                 } else {
-                    // CONFLITO! Mais de um valor diferente para o mesmo campo
                     conflitosDesteCodigo.put(campo, valoresDistintos);
                     temConflitoGeral = true;
                 }
             }
 
             if (!temConflitoGeral) {
-                // Se resolveu tudo sozinho, salva!
                 exemplarService.salvar(exemplarFinal);
             } else {
-                // Se sobrou conflito, guarda para o usuário decidir
                 conflitosReais.put(codigo, conflitosDesteCodigo);
             }
         }
-        
         return conflitosReais;
     }
 
     public void aplicarMesclagemFinal(String nomeArquivo, Map<String, String> mapaDeColunas, Map<String, Map<String, String>> decisoes) throws IOException {
-        // Recalcula duplicatas para saber quais linhas ler
         Map<String, List<Integer>> duplicatas = getMapaOcorrencias(nomeArquivo, mapaDeColunas);
         Map<String, List<OpcaoConflito>> dadosBrutos = detalharConflitos(nomeArquivo, mapaDeColunas, duplicatas);
 
@@ -192,9 +158,9 @@ public class ImportacaoService {
             String codigo = entry.getKey();
             List<OpcaoConflito> linhas = entry.getValue();
             
-            // Só processa os que tinham conflito (os outros já foram salvos no passo anterior)
             if (decisoes.containsKey(codigo)) {
-                Exemplar exemplarFinal = new Exemplar();
+                Optional<Exemplar> existente = exemplarRepository.findById(codigo);
+                Exemplar exemplarFinal = existente.orElse(new Exemplar());
                 exemplarFinal.setCod(codigo);
                 
                 Map<String, String> decisoesDesteCodigo = decisoes.get(codigo);
@@ -202,11 +168,9 @@ public class ImportacaoService {
                 for(OpcaoConflito op : linhas) todosCampos.addAll(op.getDados().keySet());
 
                 for (String campo : todosCampos) {
-                    // Se o usuário decidiu algo para este campo, usa a decisão
                     if (decisoesDesteCodigo.containsKey(campo)) {
                          preencherCampo(exemplarFinal, campo, decisoesDesteCodigo.get(campo));
                     } else {
-                        // Se não decidiu (era campo sem conflito), aplica a lógica de pegar o primeiro valor válido
                         for (OpcaoConflito linha : linhas) {
                             String val = linha.getDados().get(campo);
                             if (val != null && !val.trim().isEmpty()) {
@@ -221,123 +185,29 @@ public class ImportacaoService {
         }
     }
 
-    // --- MÉTODOS AUXILIARES ---
-
     private void salvarLinhasNaoDuplicadas(String nomeArquivo, Map<String, String> mapaDeColunas, Set<Integer> linhasParaIgnorar) throws IOException {
         File arquivo = new File(System.getProperty("java.io.tmpdir"), nomeArquivo);
-        
-        try (FileInputStream is = new FileInputStream(arquivo);
-             Workbook workbook = new XSSFWorkbook(is)) {
-
+        try (FileInputStream is = new FileInputStream(arquivo); Workbook workbook = new XSSFWorkbook(is)) {
             Sheet sheet = workbook.getSheetAt(0);
-            Row linhaCabecalho = sheet.getRow(0);
-            Map<String, Integer> indiceDasColunas = new HashMap<>();
-            for (Cell cell : linhaCabecalho) {
-                indiceDasColunas.put(cell.getStringCellValue(), cell.getColumnIndex());
-            }
-            
+            Map<String, Integer> indiceDasColunas = excelHelper.mapearIndicesColunas(sheet);
             String nomeColunaCodigo = mapaDeColunas.get("cod");
             Integer idxCodigo = indiceDasColunas.get(nomeColunaCodigo);
 
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
-                // Pula as linhas que são duplicadas (serão tratadas pelo merge)
                 if (linhasParaIgnorar.contains(i + 1)) continue;
-
                 Row row = sheet.getRow(i);
                 if (row == null) continue;
 
                 String codigoNoExcel = null;
-                if(idxCodigo != null) {
-                     codigoNoExcel = getValorCelula(row.getCell(idxCodigo)).trim();
-                }
-                
+                if(idxCodigo != null) codigoNoExcel = excelHelper.getValorCelula(row.getCell(idxCodigo)).trim();
                 if (codigoNoExcel == null || codigoNoExcel.isEmpty()) continue;
 
-                Exemplar exemplar = new Exemplar(); 
+                Exemplar exemplar = new Exemplar();
                 exemplar.setCod(codigoNoExcel);
-                
-                for (Map.Entry<String, String> entrada : mapaDeColunas.entrySet()) {
-                    String campoSistema = entrada.getKey();
-                    String colunaExcel = entrada.getValue();
-
-                    if (colunaExcel != null && !colunaExcel.isEmpty() && indiceDasColunas.containsKey(colunaExcel)) {
-                        int indice = indiceDasColunas.get(colunaExcel);
-                        Cell cell = row.getCell(indice);
-                        String valor = getValorCelula(cell);
-                        
-                        if (!valor.isEmpty()) {
-                            preencherCampo(exemplar, campoSistema, valor);
-                        }
-                    }
-                }
+                preencherExemplarComLinha(exemplar, row, mapaDeColunas, indiceDasColunas);
                 exemplarService.salvar(exemplar);
             }
         }
-    }
-
-    private Map<String, List<Integer>> getMapaOcorrencias(String nomeArquivo, Map<String, String> mapaDeColunas) throws IOException {
-        File arquivo = new File(System.getProperty("java.io.tmpdir"), nomeArquivo);
-        String nomeColunaCodigo = mapaDeColunas.get("cod");
-        Map<String, List<Integer>> mapa = new HashMap<>();
-        
-        try (FileInputStream is = new FileInputStream(arquivo); Workbook workbook = new XSSFWorkbook(is)) {
-            Sheet sheet = workbook.getSheetAt(0);
-            Row linhaCabecalho = sheet.getRow(0);
-            int idx = -1;
-            for (Cell cell : linhaCabecalho) {
-                if (cell.getStringCellValue().equals(nomeColunaCodigo)) { idx = cell.getColumnIndex(); break; }
-            }
-            if (idx == -1) return mapa;
-
-            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
-                Row row = sheet.getRow(i);
-                if (row == null) continue;
-                String cod = getValorCelula(row.getCell(idx)).trim();
-                if (!cod.isEmpty()) mapa.computeIfAbsent(cod, k -> new ArrayList<>()).add(i + 1);
-            }
-        }
-        return mapa.entrySet().stream().filter(e -> e.getValue().size() > 1).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-    }
-
-    public List<String> lerCabecalhos(MultipartFile arquivo) throws IOException {
-        List<String> cabecalhos = new ArrayList<>();
-        try (InputStream is = arquivo.getInputStream(); Workbook workbook = new XSSFWorkbook(is)) {
-            Sheet sheet = workbook.getSheetAt(0);
-            Row linhaCabecalho = sheet.getRow(0);
-            if (linhaCabecalho != null) {
-                for (Cell cell : linhaCabecalho) cabecalhos.add(cell.getStringCellValue());
-            }
-        }
-        return cabecalhos;
-    }
-
-    public List<ColunaExcelDTO> analisarArquivoExcel(MultipartFile arquivo) throws IOException {
-        List<ColunaExcelDTO> colunas = new ArrayList<>();
-        try (InputStream is = arquivo.getInputStream(); Workbook workbook = new XSSFWorkbook(is)) {
-            Sheet sheet = workbook.getSheetAt(0);
-            Row linhaCabecalho = sheet.getRow(0);
-            if (linhaCabecalho != null) {
-                for (Cell cell : linhaCabecalho) {
-                    String nomeColuna = cell.getStringCellValue();
-                    int indiceColuna = cell.getColumnIndex();
-                    List<String> amostras = new ArrayList<>();
-                    int linhasEncontradas = 0;
-                    for (int i = 1; i <= sheet.getLastRowNum() && linhasEncontradas < 3 && i < 100; i++) {
-                        Row rowData = sheet.getRow(i);
-                        if (rowData != null) {
-                            Cell cellData = rowData.getCell(indiceColuna);
-                            String valor = getValorCelula(cellData).trim();
-                            if (!valor.isEmpty()) {
-                                amostras.add(valor);
-                                linhasEncontradas++;
-                            }
-                        }
-                    }
-                    colunas.add(new ColunaExcelDTO(nomeColuna, amostras));
-                }
-            }
-        }
-        return colunas;
     }
 
     public Map<String, List<OpcaoConflito>> detalharConflitos(String nomeArquivo, Map<String, String> mapaDeColunas, Map<String, List<Integer>> duplicatas) throws IOException {
@@ -345,9 +215,7 @@ public class ImportacaoService {
         Map<String, List<OpcaoConflito>> detalhes = new LinkedHashMap<>();
         try (FileInputStream is = new FileInputStream(arquivo); Workbook workbook = new XSSFWorkbook(is)) {
             Sheet sheet = workbook.getSheetAt(0);
-            Row linhaCabecalho = sheet.getRow(0);
-            Map<String, Integer> indiceDasColunas = new HashMap<>();
-            for (Cell cell : linhaCabecalho) indiceDasColunas.put(cell.getStringCellValue(), cell.getColumnIndex());
+            Map<String, Integer> indiceDasColunas = excelHelper.mapearIndicesColunas(sheet);
 
             for (Map.Entry<String, List<Integer>> entry : duplicatas.entrySet()) {
                 String codigo = entry.getKey();
@@ -361,7 +229,7 @@ public class ImportacaoService {
                         String campoSistema = colEntry.getKey();
                         String nomeColExcel = colEntry.getValue();
                         if (indiceDasColunas.containsKey(nomeColExcel)) {
-                             String val = getValorCelula(row.getCell(indiceDasColunas.get(nomeColExcel)));
+                             String val = excelHelper.getValorCelula(row.getCell(indiceDasColunas.get(nomeColExcel)));
                              if(!val.isEmpty()) dadosDaLinha.put(campoSistema, val);
                         }
                     }
@@ -401,17 +269,15 @@ public class ImportacaoService {
         Map<String, List<Integer>> mapaOcorrencias = new HashMap<>();
         try (FileInputStream is = new FileInputStream(arquivo); Workbook workbook = new XSSFWorkbook(is)) {
             Sheet sheet = workbook.getSheetAt(0);
-            Row linhaCabecalho = sheet.getRow(0);
-            int indiceCodigo = -1;
-            for (Cell cell : linhaCabecalho) {
-                if (cell.getStringCellValue().equals(nomeColunaCodigo)) { indiceCodigo = cell.getColumnIndex(); break; }
-            }
-            if (indiceCodigo == -1) return;
+            Map<String, Integer> indiceDasColunas = excelHelper.mapearIndicesColunas(sheet);
+            Integer idxCodigo = indiceDasColunas.get(nomeColunaCodigo);
+
+            if (idxCodigo == null) return;
+
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
                 if (row == null) continue;
-                Cell cell = row.getCell(indiceCodigo);
-                String codigo = getValorCelula(cell).trim();
+                String codigo = excelHelper.getValorCelula(row.getCell(idxCodigo)).trim();
                 if (!codigo.isEmpty()) mapaOcorrencias.computeIfAbsent(codigo, k -> new ArrayList<>()).add(i + 1);
             }
         }
@@ -420,10 +286,38 @@ public class ImportacaoService {
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         if (!apenasDuplicados.isEmpty()) throw new DuplicidadeException(apenasDuplicados);
     }
+    
+    private Map<String, List<Integer>> getMapaOcorrencias(String nomeArquivo, Map<String, String> mapaDeColunas) throws IOException {
+        File arquivo = new File(System.getProperty("java.io.tmpdir"), nomeArquivo);
+        String nomeColunaCodigo = mapaDeColunas.get("cod");
+        Map<String, List<Integer>> mapa = new HashMap<>();
+        try (FileInputStream is = new FileInputStream(arquivo); Workbook workbook = new XSSFWorkbook(is)) {
+            Sheet sheet = workbook.getSheetAt(0);
+            Map<String, Integer> indiceDasColunas = excelHelper.mapearIndicesColunas(sheet);
+            Integer idxCodigo = indiceDasColunas.get(nomeColunaCodigo);
+            if (idxCodigo == null) return mapa;
 
-    private String getValorCelula(Cell cell) {
-        if (cell == null) return "";
-        return dataFormatter.formatCellValue(cell);
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) continue;
+                String cod = excelHelper.getValorCelula(row.getCell(idxCodigo)).trim();
+                if (!cod.isEmpty()) mapa.computeIfAbsent(cod, k -> new ArrayList<>()).add(i + 1);
+            }
+        }
+        return mapa.entrySet().stream().filter(e -> e.getValue().size() > 1).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    private void preencherExemplarComLinha(Exemplar exemplar, Row row, Map<String, String> mapaDeColunas, Map<String, Integer> indiceDasColunas) {
+        for (Map.Entry<String, String> entrada : mapaDeColunas.entrySet()) {
+            String campoSistema = entrada.getKey();
+            String colunaExcel = entrada.getValue();
+            if (indiceDasColunas.containsKey(colunaExcel)) {
+                String valor = excelHelper.getValorCelula(row.getCell(indiceDasColunas.get(colunaExcel)));
+                if (!valor.isEmpty()) {
+                    preencherCampo(exemplar, campoSistema, valor);
+                }
+            }
+        }
     }
 
     private void preencherCampo(Exemplar e, String campo, String valor) {
