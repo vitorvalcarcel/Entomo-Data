@@ -1,0 +1,30 @@
+/* === GERAL E LAYOUT === */
+body {
+    font-family: 'Segoe UI', 'Roboto', Helvetica, Arial, sans-serif;
+    background-color: #f4f6f8;
+    color: #333;
+    margin: 0;
+    padding: 30px;
+}
+
+/* === CABEÇALHO === */
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    background-color: #fff;
+    padding: 15px 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+h1 {
+    color: #2c3e50;
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+/* === UTILITÁRIOS === */
+.scroll-topo-wrapper { width: 100%; overflow-x: auto; overflow-y: hidden; border-top: 1px solid #eee; }
+.scroll-topo-content { height: 1px; }
