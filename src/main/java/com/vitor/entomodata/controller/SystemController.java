@@ -17,10 +17,12 @@ public class SystemController {
     @Autowired
     private ApplicationContext context;
 
+    // Inicializa com o tempo atual
     private final AtomicLong lastHeartbeat = new AtomicLong(System.currentTimeMillis());
-
-    private static final long TIMEOUT_MS = 10000; 
     
+    // Tempo de tolerância (Use 60000 para produção, 10000 só para teste rápido)
+    private static final long TIMEOUT_MS = 15000; 
+
     @GetMapping("/sistema/sair")
     public String confirmarSaida() {
         return "sistema-sair";
@@ -28,23 +30,32 @@ public class SystemController {
 
     @PostMapping("/sistema/desligar")
     public String desligarSistema() {
-        executarDesligamento(1000);
+        executarDesligamento(1000); 
         return "sistema-desligado";
     }
+
+    // --- HEARTBEAT ---
 
     @PostMapping("/sistema/alive")
     @ResponseBody
     public void receberSinalDeVida() {
+        // DEBUG: Comente esta linha em produção
+        System.out.println("❤️ [BACKEND] Tum-tum! Sinal recebido às " + java.time.LocalTime.now());
+        
         lastHeartbeat.set(System.currentTimeMillis());
     }
 
-    @Scheduled(fixedRate = 10000, initialDelay = 30000)
+    // Roda a cada 5 segundos, espera 20s para começar
+    @Scheduled(fixedRate = 5000, initialDelay = 20000)
     public void verificarInatividade() {
         long agora = System.currentTimeMillis();
         long ultimoSinal = lastHeartbeat.get();
+        long silencio = agora - ultimoSinal;
 
-        if ((agora - ultimoSinal) > TIMEOUT_MS) {
-            System.out.println("⚠️ Inatividade detectada (sem sinal do navegador por " + (TIMEOUT_MS/1000) + "s). Encerrando...");
+        System.out.println("⏱️ [CHECK] Tempo de silêncio: " + (silencio/1000) + "s (Limite: " + (TIMEOUT_MS/1000) + "s)");
+
+        if (silencio > TIMEOUT_MS) {
+            System.out.println("⚠️ [SHUTDOWN] Inatividade crítica detectada. Encerrando...");
             executarDesligamento(0);
         }
     }
