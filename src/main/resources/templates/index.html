@@ -3,7 +3,13 @@
 <head th:replace="~{fragments :: head('EntomoData - Início')}"></head>
 <body>
     <div class="header-container">
-        <h1>🐝 EntomoData <span style="font-weight: normal; font-size: 0.8em; color: #7f8c8d;">| Gerenciamento</span></h1>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <a href="/" class="btn btn-cancelar" style="background: #fff; border: 1px solid #ccc; color: #555; height: 35px; padding: 0 15px;" title="Voltar ao Dashboard">
+                📊
+            </a>
+            <h1>🐝 EntomoData <span style="font-weight: normal; font-size: 0.8em; color: #7f8c8d;">| Acervo Completo</span></h1>
+        </div>
+        
         <div>
             <span style="font-size: 14px; color: #666; margin-right: 10px;">Exibir:</span>
             <select id="sizeSelect" onchange="mudarTamanho()" class="seletor-pagina">

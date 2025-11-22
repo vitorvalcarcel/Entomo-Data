@@ -43,7 +43,8 @@ public class ExemplarController {
         model.addAttribute("camposHelper", camposHelper);
     }
 
-    @GetMapping("/")
+    // --- ALTERAÇÃO AQUI: Mudou de "/" para "/acervo" ---
+    @GetMapping("/acervo")
     public String listarExemplares(Model model, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "50") int size, @RequestParam(defaultValue = "cod") String sort, @RequestParam(defaultValue = "asc") String dir, Exemplar filtro) {
         buscarDados(model, page, size, sort, dir, filtro);
         adicionarHelpers(model);
@@ -105,7 +106,8 @@ public class ExemplarController {
             return "cadastro-conflito";
         }
         service.salvar(exemplar);
-        return "redirect:/";
+        // Redireciona para o acervo após salvar, não mais para raiz "/"
+        return "redirect:/acervo";
     }
 
     // === EDIÇÃO ===
@@ -113,7 +115,7 @@ public class ExemplarController {
     @GetMapping("/editar/{cod}")
     public String editarExemplar(@PathVariable String cod, Model model) {
         Exemplar original = service.buscarPorId(cod);
-        if (original == null) return "redirect:/";
+        if (original == null) return "redirect:/acervo";
         model.addAttribute("exemplar", original); 
         model.addAttribute("original", original); 
         adicionarHelpers(model); // Necessário para o form de edição
@@ -132,7 +134,7 @@ public class ExemplarController {
     @PostMapping("/editar/revisar")
     public String revisarEdicao(Exemplar exemplar, Model model) {
         Exemplar original = service.buscarPorId(exemplar.getCod());
-        if (original == null) { service.salvar(exemplar); return "redirect:/"; }
+        if (original == null) { service.salvar(exemplar); return "redirect:/acervo"; }
         model.addAttribute("novo", exemplar);
         model.addAttribute("antigo", original);
         adicionarHelpers(model); // Para a tabela comparativa
@@ -152,7 +154,7 @@ public class ExemplarController {
     @PostMapping("/editar/confirmar")
     public String confirmarEdicao(Exemplar exemplar) {
         service.salvar(exemplar);
-        return "redirect:/?msg=EdicaoSucesso";
+        return "redirect:/acervo?msg=EdicaoSucesso";
     }
 
     // === EXCLUSÃO ===
@@ -160,7 +162,7 @@ public class ExemplarController {
     @GetMapping("/deletar/{cod}")
     public String deletarExemplarIndividual(@PathVariable String cod) {
         service.deletarPorListaDeCodigos(Arrays.asList(cod));
-        return "redirect:/";
+        return "redirect:/acervo";
     }
 
     @GetMapping("/deletar")
@@ -190,6 +192,6 @@ public class ExemplarController {
             return "deletar-confirma"; 
         }
         service.deletarPorListaDeCodigos(ids);
-        return "redirect:/?msg=ExclusaoSucesso";
+        return "redirect:/acervo?msg=ExclusaoSucesso";
     }
 }

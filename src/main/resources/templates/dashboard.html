@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>EntomoData - Dashboard</title>
+    <meta charset="UTF-8">
+    
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" th:href="@{/css/components.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+</head>
+<body>
+
+    <div class="header-container" style="border-left: 5px solid #2c3e50;">
+        <h1>🐝 Dashboard <span style="font-weight: normal; font-size: 0.8em; color: #7f8c8d;">| Visão Geral</span></h1>
+        
+        <a href="/acervo" class="btn btn-novo" style="background-color: #2c3e50;">
+            📚 Acessar Acervo Completo
+        </a>
+    </div>
+
+    <div class="kpi-container dashboard-grid">
+        <div class="card-kpi border-azul">
+            <div class="kpi-titulo">Total de Exemplares</div>
+            <div class="kpi-valor" th:text="${dashboard.totalExemplares}">0</div>
+        </div>
+        
+        <div class="card-kpi border-verde">
+            <div class="kpi-titulo">Riqueza (Espécies)</div>
+            <div class="kpi-valor" th:text="${dashboard.totalEspecies}">0</div>
+        </div>
+        
+        <div class="card-kpi border-roxo">
+            <div class="kpi-titulo">Famílias</div>
+            <div class="kpi-valor" th:text="${dashboard.totalFamilias}">0</div>
+        </div>
+
+        <div class="card-kpi border-laranja">
+            <div class="kpi-titulo">Gêneros</div>
+            <div class="kpi-valor" th:text="${dashboard.totalGeneros}">0</div>
+        </div>
+
+        <div class="card-kpi border-vermelho">
+            <div class="kpi-titulo">Sem Identificação</div>
+            <div class="kpi-valor" th:text="${dashboard.semIdentificacao}">0</div>
+        </div>
+    </div>
+
+    <div class="charts-container dashboard-grid">
+        <div class="card-grafico">
+            <h3>Distribuição por Família</h3>
+            <div class="chart-area">
+                <canvas id="chartFamilia"></canvas>
+            </div>
+        </div>
+        
+        <div class="card-grafico">
+            <h3>Coletas por Bioma</h3>
+            <div class="chart-area">
+                <canvas id="chartBioma"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="map-container dashboard-grid">
+        <h3 style="margin-top:0; color:#555;">🗺️ Mapa de Calor das Coletas</h3>
+        <div id="mapaCalor"></div>
+        <p style="font-size: 12px; color: #999; margin-top: 5px;">
+            * Mostrando densidade baseada nas coordenadas (Latitude/Longitude) cadastradas.
+        </p>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const dashboardData = /*[[${dashboard}]]*/ {};
+        /*]]>*/
+    </script>
+
+    <script src="/js/dashboard.js"></script>
+
+</body>
+</html>
