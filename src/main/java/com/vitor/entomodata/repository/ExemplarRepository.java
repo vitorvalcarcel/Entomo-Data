@@ -31,12 +31,19 @@ public interface ExemplarRepository extends JpaRepository<Exemplar, String> {
 
     @Query("SELECT e.bioma, COUNT(e) FROM Exemplar e WHERE e.bioma IS NOT NULL AND e.bioma <> '' GROUP BY e.bioma ORDER BY COUNT(e) DESC")
     List<Object[]> countByBioma();
+
+    @Query("SELECT e.metodoDeAquisicao, COUNT(e) FROM Exemplar e WHERE e.metodoDeAquisicao IS NOT NULL AND e.metodoDeAquisicao <> '' GROUP BY e.metodoDeAquisicao ORDER BY COUNT(e) DESC")
+    List<Object[]> countByMetodo();
     
     // Top 10 espécies
     @Query("SELECT e.especie, COUNT(e) FROM Exemplar e WHERE e.especie IS NOT NULL AND e.especie <> '' GROUP BY e.especie ORDER BY COUNT(e) DESC LIMIT 10")
     List<Object[]> findTop10Especies();
 
-    // Buscar apenas Lat/Long para o mapa (evita trazer o objeto inteiro)
+    // Buscar apenas Lat/Long para o mapa
     @Query("SELECT e.latitude, e.longitude FROM Exemplar e WHERE e.latitude IS NOT NULL AND e.longitude IS NOT NULL AND e.latitude <> '' AND e.longitude <> ''")
     List<Object[]> findAllCoordenadas();
+
+    // Buscar todas as datas para processamento de sazonalidade em memória
+    @Query("SELECT e.data FROM Exemplar e WHERE e.data IS NOT NULL AND e.data <> ''")
+    List<String> findAllDatas();
 }

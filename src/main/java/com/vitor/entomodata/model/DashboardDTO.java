@@ -15,6 +15,8 @@ public class DashboardDTO {
     // Gráficos (Mapas Chave -> Valor)
     private Map<String, Long> distribuicaoPorFamilia;
     private Map<String, Long> distribuicaoPorBioma;
+    private Map<String, Long> distribuicaoPorMetodo;
+    private Map<String, Long> sazonalidadePorMes;
     private Map<String, Long> topEspecies;
     
     // Mapa (Lista de Coordenadas)
@@ -45,17 +47,22 @@ public class DashboardDTO {
     public Map<String, Long> getDistribuicaoPorBioma() { return distribuicaoPorBioma; }
     public void setDistribuicaoPorBioma(Map<String, Long> distribuicaoPorBioma) { this.distribuicaoPorBioma = distribuicaoPorBioma; }
 
+    public Map<String, Long> getDistribuicaoPorMetodo() { return distribuicaoPorMetodo; }
+    public void setDistribuicaoPorMetodo(Map<String, Long> distribuicaoPorMetodo) { this.distribuicaoPorMetodo = distribuicaoPorMetodo; }
+
+    public Map<String, Long> getSazonalidadePorMes() { return sazonalidadePorMes; }
+    public void setSazonalidadePorMes(Map<String, Long> sazonalidadePorMes) { this.sazonalidadePorMes = sazonalidadePorMes; }
+
     public Map<String, Long> getTopEspecies() { return topEspecies; }
     public void setTopEspecies(Map<String, Long> topEspecies) { this.topEspecies = topEspecies; }
 
     public List<PontoMapa> getCoordenadas() { return coordenadas; }
     public void setCoordenadas(List<PontoMapa> coordenadas) { this.coordenadas = coordenadas; }
 
-    // Classe interna para facilitar o transporte de Lat/Long
     public static class PontoMapa {
         private Double lat;
         private Double lng;
-        private Long count;
+        private Long count; 
 
         public PontoMapa(Double lat, Double lng) {
             this.lat = lat;

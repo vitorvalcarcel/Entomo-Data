@@ -16,6 +16,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -92,6 +93,22 @@ public class ExcelHelper {
 
     public String getValorCelula(Cell cell) {
         if (cell == null) return "";
+        
+        // NOVO: Detecção explícita de Data para evitar confusão de locale (dd/MM vs MM/dd)
+        if (cell.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell)) {
+            try {
+                // Extrai a data real do Excel e formata como ISO (yyyy-MM-dd)
+                // Isso ignora se o Excel está exibindo em inglês, português ou japonês
+                java.util.Date data = cell.getDateCellValue();
+                if (data != null) {
+                    SimpleDateFormat isoFormat = new SimpleDateFormat("yyyy-MM-dd");
+                    return isoFormat.format(data);
+                }
+            } catch (Exception e) {
+                // Se falhar, cai no formatador padrão abaixo
+            }
+        }
+        
         return dataFormatter.formatCellValue(cell);
     }
 
